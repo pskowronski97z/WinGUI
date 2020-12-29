@@ -10,15 +10,17 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #define CHECK_BOX 0x02
 #define RICH_TEXT_INPUT 0x03
 #define INT_INPUT 0x04
+#define FLOAT_INPUT 0x05
 
 namespace {
 
+	WNDPROC std_edit_proc = nullptr;
 	std::vector<bool*> button_controls;
 	std::vector<bool*> check_box_controls;
 	std::vector<std::string*> rich_text_buffers;
 	std::vector<int*> int_input_controls;
 	bool is_window_initialized = false;
-	
+
 	std::string wchar_t_2_string(wchar_t *text, int length) {
 
 		std::string result;
@@ -27,6 +29,94 @@ namespace {
 		for (int i = 0; i < length; i++) {
 			char_buffer = (char)text[i];
 			result += char_buffer;
+		}
+
+		return result;
+	}
+	/// <summary>
+	/// Formats input wide char array to be displayed as a decimal float number
+	/// </summary>
+	/// <param name="source">Pointer to the input wide char array</param>
+	/// <param name="length">Length of the array including \0 terminating char</param>
+	/// <returns></returns>
+	wchar_t *format_float_input(const wchar_t *source, int length) {
+
+		wchar_t *padding_buffer;
+		wchar_t *result;
+		int buffer_itr = 0;
+		int source_itr = 0;
+		bool was_separator = false;
+
+		// 1. String preprocessing
+		// 1.1 Return default string if source is empty
+
+		if (length == 1) {
+			result = new wchar_t[4];
+
+			result[0] = L'0';
+			result[1] = L'.';
+			result[2] = L'0';
+			result[3] = L'\0';
+			return result;
+		}
+
+		// 1.2. Filter redundant decimal separators - only first will be relevant
+
+		wchar_t *filtered_str = new wchar_t[length];
+		int filtered_str_len = length;
+
+		while (source[source_itr] != L'\0') {
+			if (was_separator && source[source_itr] == L'.') {
+				source_itr++;
+				filtered_str_len--;
+				continue;
+			}
+
+			filtered_str[buffer_itr] = source[source_itr];
+
+			if (source[source_itr] == L'.')
+				was_separator = true;
+
+			source_itr++;
+			buffer_itr++;
+		}
+
+		filtered_str[buffer_itr] = L'\0';
+
+		// filtered_str contains string which is filtered out of redundant decimal separators
+		// Amount of array elements is still the same like origin length, but \0 is placed earlier which trims the string
+		// Real length (pointed by \0) is stored in filtered_str_len
+
+		// 2. Padding front with 0 when the first char is "."
+		
+		result = filtered_str;
+
+		if (filtered_str[0] == L'.' && filtered_str_len >= 2) {
+			padding_buffer = new wchar_t[filtered_str_len + (int)1];
+			padding_buffer[0] = L'0';
+			padding_buffer[1] = L'.';
+
+			for (source_itr = 1, buffer_itr = 2; source_itr < filtered_str_len; source_itr++, buffer_itr++)
+				padding_buffer[buffer_itr] = filtered_str[source_itr];
+
+			delete [] filtered_str;
+			filtered_str = padding_buffer;
+			filtered_str_len++;
+			result = filtered_str;
+		}
+
+		// 3. Padding back with 0 when the last char before \0 is "."
+
+		if (filtered_str[filtered_str_len - 2] == L'.' && filtered_str_len >= 2) {
+			padding_buffer = new wchar_t[filtered_str_len + (int)1];
+			padding_buffer[filtered_str_len] = L'\0';
+			padding_buffer[filtered_str_len - 1] = L'0';
+
+			for (source_itr = 0, buffer_itr = 0; source_itr < filtered_str_len - 1; source_itr++, buffer_itr++)
+				padding_buffer[buffer_itr] = filtered_str[source_itr];
+
+			delete [] filtered_str;
+			result = padding_buffer;
 		}
 
 		return result;
@@ -60,11 +150,12 @@ namespace {
 
 	LRESULT CALLBACK wnd_procedure(HWND Window_handle, UINT Message, WPARAM W_param, LPARAM L_param) {
 
-		if(!is_window_initialized)
+		if (!is_window_initialized)
 			return DefWindowProcW(Window_handle, Message, W_param, L_param);
-		
+
 		DWORD buffer_size;
-		wchar_t *text_field_buffer;
+		wchar_t *text_field_buffer=nullptr;
+		wchar_t *text_field_buffer_2=nullptr;
 		std::string number_string;
 
 		switch (Message) {
@@ -106,14 +197,25 @@ namespace {
 					GetWindowText((HWND)L_param, (LPWSTR)text_field_buffer, buffer_size + 1);
 					number_string = wchar_t_2_string(text_field_buffer, buffer_size);
 
-					try {
-						*int_input_controls[LOBYTE(W_param)] = std::stoi(number_string);
-					}
-					catch (...) {
-						std::cout<<"Invalid integer input"<<std::endl;
-					}					
+					try { *int_input_controls[LOBYTE(W_param)] = std::stoi(number_string); }
+					catch (...) { std::cout << "Invalid integer input" << std::endl; }
 				}
 				break;
+			case FLOAT_INPUT: {
+				buffer_size = GetWindowTextLength((HWND)L_param);
+				text_field_buffer = new wchar_t[buffer_size+1];
+				GetWindowText((HWND)L_param, (LPWSTR)text_field_buffer, buffer_size+1);
+
+				if(!buffer_size)
+					SendMessage((HWND)L_param,WM_SETTEXT,0,(LPARAM)L"0.0");
+			
+				delete [] text_field_buffer_2;
+				text_field_buffer_2 = format_float_input(text_field_buffer,buffer_size+1);
+
+				if(text_field_buffer_2!=nullptr)
+					std::wcout<<text_field_buffer_2<<std::endl;
+			break;	
+			}
 			default:
 				break;
 			}
@@ -122,6 +224,20 @@ namespace {
 			return DefWindowProcW(Window_handle, Message, W_param, L_param);
 		}
 		return 0;
+	}
+
+	LRESULT CALLBACK float_input_proc(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param) {
+
+		switch (message) {
+		case WM_CHAR:
+			if (((w_param < '0') || (w_param > '9')) && (w_param != '.') && (w_param != 8))
+				return 0;
+
+		default:
+			break;
+		}
+
+		return CallWindowProc(std_edit_proc, window_handle, message, w_param, l_param);
 	}
 
 	// TODO: Add CreateWindow  fail exception
@@ -248,11 +364,36 @@ namespace {
 			GetModuleHandle(nullptr),
 			nullptr);
 
-		SendMessage(ud_control_handle,UDM_SETRANGE,0,MAKELPARAM(max, min));
-		
+		SendMessage(ud_control_handle,UDM_SETRANGE, 0,MAKELPARAM(max, min));
+
 		return result;
 	}
 
+	HWND create_float_input(unsigned char id, HWND parent, int x, int y, int width) {
+
+		unsigned short w_param = (FLOAT_INPUT << 8) | id;
+		HWND result = CreateWindowExW(
+			WS_EX_CLIENTEDGE,
+			WC_EDIT,
+			nullptr,
+			WS_CHILD | WS_VISIBLE | ES_LEFT,
+			x,
+			y,
+			width,
+			22,
+			parent,
+			(HMENU)w_param,
+			GetModuleHandle(nullptr),
+			nullptr);
+
+		SendMessage(result, WM_SETFONT, (WPARAM)(HFONT)GetStockObject(DEFAULT_GUI_FONT), MAKELPARAM(TRUE, 0));
+		SendMessage(result,WM_SETTEXT,0,(LPARAM)L"0.0");
+		if (std_edit_proc == nullptr)
+			std_edit_proc = (WNDPROC)SetWindowLongPtr(result,GWLP_WNDPROC, (LONG_PTR)float_input_proc);
+
+		return result;
+
+	}
 }
 
 Win_GUI::Window::Window(LPCWSTR title_label, int width, int height, bool is_size_fixed) {
@@ -273,7 +414,7 @@ Win_GUI::Window::Window(LPCWSTR title_label, int width, int height, bool is_size
 	wnd_class.lpszMenuName = nullptr;
 	wnd_class.style = 0;
 	wnd_class.cbClsExtra = 0;
-	wnd_class.cbWndExtra = 0;
+	wnd_class.cbWndExtra = 1;
 
 	RegisterClass(&wnd_class);
 
@@ -373,7 +514,8 @@ bool Win_GUI::Window::add_pane(int x, int y, int width, int height) const {
 	return true;
 }
 
-bool Win_GUI::Window::add_rich_text_input(std::string *buffer, int x, int y, int width, int height, bool v_scroll, bool h_scroll) {
+bool Win_GUI::Window::add_rich_text_input(std::string *buffer, int x, int y, int width, int height, bool v_scroll,
+                                          bool h_scroll) {
 
 	if ((x < 0) || (y < 0) || (width <= 0) || (height <= 0))
 		return false;
@@ -397,8 +539,16 @@ bool Win_GUI::Window::add_rich_text_input(std::string *buffer, int x, int y, int
 
 bool Win_GUI::Window::add_int_input(int *control, int x, int y, int width, int min, int max) {
 
-	HWND buddy_wnd_handle = create_int_input((unsigned char)int_input_controls.size(), wnd_handle, x, y, width, min, max);
+	HWND buddy_wnd_handle = create_int_input((unsigned char)int_input_controls.size(), wnd_handle, x, y, width, min,
+	                                         max);
 	int_input_controls.emplace_back(control);
+
+	return true;
+}
+
+bool Win_GUI::Window::add_float_input(float *control, int x, int y, int width) {
+
+	create_float_input(0, wnd_handle, x, y, width);
 
 	return true;
 }

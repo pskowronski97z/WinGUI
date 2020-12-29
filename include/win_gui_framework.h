@@ -29,6 +29,8 @@ namespace Win_GUI {
 		bool add_rich_text_input(std::string *buffer, int x, int y, int width, int height,  bool v_scroll, bool h_scroll);
 
 		bool add_int_input(int *control, int x, int y, int width, int min, int max);
+
+		bool add_float_input(float *control, int x, int y, int width);
 		
 		// TODO: Secure from multiple calls
 		HWND show_window() const;
