@@ -6,11 +6,13 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #include <CommCtrl.h>
 #include <string>
 
+#define FONT_HEIGHT 16
 #define BUTTON 0x01
 #define CHECK_BOX 0x02
 #define RICH_TEXT_INPUT 0x03
 #define INT_INPUT 0x04
 #define FLOAT_INPUT 0x05
+#define LIST_BOX 0x06
 
 namespace {
 
@@ -19,6 +21,7 @@ namespace {
 	std::vector<bool*> check_box_controls;
 	std::vector<std::string*> rich_text_buffers;
 	std::vector<int*> int_input_controls;
+	std::vector<float*> float_input_controls;
 	bool is_window_initialized = false;
 
 	std::string wchar_t_2_string(wchar_t *text, int length) {
@@ -83,6 +86,20 @@ namespace {
 
 		filtered_str[buffer_itr] = L'\0';
 
+		if(!was_separator) {
+			result = new wchar_t[length+2];
+
+			for(int i=0;i<length;i++)
+				result[i]=source[i];
+
+			result[length + 1]=L'\0';
+			result[length]=L'0';
+			result[length -1]=L'.';
+
+			delete [] filtered_str;
+			return result;
+		}
+		
 		// filtered_str contains string which is filtered out of redundant decimal separators
 		// Amount of array elements is still the same like origin length, but \0 is placed earlier which trims the string
 		// Real length (pointed by \0) is stored in filtered_str_len
@@ -122,6 +139,16 @@ namespace {
 		return result;
 	}
 
+	std::wstring string_2_wstring(std::string source) {
+
+		std::wstring result;
+
+		for(auto &ch : source) 
+			result += (wchar_t)ch;
+		
+		return result;
+	}
+	
 	INT_PTR CALLBACK DlgProc(HWND Window_handle, UINT Message, WPARAM W_param, LPARAM L_param) {
 		switch (Message) {
 		case WM_CLOSE:
@@ -190,7 +217,7 @@ namespace {
 				GetWindowText((HWND)L_param, (LPWSTR)text_field_buffer, buffer_size + 1);
 				*rich_text_buffers[LOBYTE(W_param)] = wchar_t_2_string(text_field_buffer, buffer_size);
 				break;
-			case INT_INPUT:
+			case INT_INPUT:   // Przerobiæ na parsowanie w ten sam sposób co float
 				if (LOBYTE(W_param) < int_input_controls.size()) {
 					buffer_size = GetWindowTextLength((HWND)L_param);
 					text_field_buffer = new wchar_t[buffer_size];
@@ -202,18 +229,14 @@ namespace {
 				}
 				break;
 			case FLOAT_INPUT: {
-				buffer_size = GetWindowTextLength((HWND)L_param);
-				text_field_buffer = new wchar_t[buffer_size+1];
-				GetWindowText((HWND)L_param, (LPWSTR)text_field_buffer, buffer_size+1);
+				if (HIWORD(W_param) == WM_MOUSEMOVE) {
+					buffer_size = GetWindowTextLength((HWND)L_param);
+					text_field_buffer = new wchar_t[buffer_size];
+					GetWindowText((HWND)L_param, (LPWSTR)text_field_buffer, buffer_size + 1);
+					number_string = wchar_t_2_string(text_field_buffer, buffer_size);
 
-				if(!buffer_size)
-					SendMessage((HWND)L_param,WM_SETTEXT,0,(LPARAM)L"0.0");
-			
-				delete [] text_field_buffer_2;
-				text_field_buffer_2 = format_float_input(text_field_buffer,buffer_size+1);
-
-				if(text_field_buffer_2!=nullptr)
-					std::wcout<<text_field_buffer_2<<std::endl;
+					*float_input_controls[LOBYTE(W_param)] = std::stof(number_string);
+				}
 			break;	
 			}
 			default:
@@ -228,11 +251,27 @@ namespace {
 
 	LRESULT CALLBACK float_input_proc(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param) {
 
+		int buffer_length;
+		wchar_t *buffer;
+		wchar_t *format_buffer;
 		switch (message) {
 		case WM_CHAR:
 			if (((w_param < '0') || (w_param > '9')) && (w_param != '.') && (w_param != 8))
 				return 0;
+		break;
+		case WM_KILLFOCUS:	
+			buffer_length = GetWindowTextLength(window_handle);
+			buffer = new wchar_t[buffer_length+1];
+			GetWindowText(window_handle, (LPWSTR)buffer, buffer_length+1);
+	
+			format_buffer = format_float_input(buffer,buffer_length+1);
 
+			if(format_buffer!=nullptr)
+				SendMessage(window_handle,WM_SETTEXT,0,(LPARAM)format_buffer);
+
+			delete [] buffer;
+			delete [] format_buffer;
+			break;
 		default:
 			break;
 		}
@@ -394,11 +433,16 @@ namespace {
 		return result;
 
 	}
+
+	HWND create_list_box(unsigned char id, HWND parent, int x, int y, int width, int height) {
+		return NULL;
+	}
 }
 
-Win_GUI::Window::Window(LPCWSTR title_label, int width, int height, bool is_size_fixed) {
+Win_GUI::Window::Window(std::string title_label, int width, int height, bool is_size_fixed) {
 
 	DWORD style;
+	std::wstring title_w_label = string_2_wstring(title_label);
 
 	if (is_size_fixed)
 		style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
@@ -420,7 +464,7 @@ Win_GUI::Window::Window(LPCWSTR title_label, int width, int height, bool is_size
 
 	wnd_handle = CreateWindow(
 		L"win_gui_class",
-		title_label,
+		title_w_label.c_str(),
 		style,
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
@@ -447,17 +491,18 @@ HWND Win_GUI::Window::show_window() const {
 	return wnd_handle;
 }
 
-bool Win_GUI::Window::add_button(bool *control, LPCWSTR button_label, int x, int y, int width, int height) {
+bool Win_GUI::Window::add_button(bool *control, std::string button_label, int x, int y, int width, int height) {
 
 	if ((control == nullptr)
-		|| (button_label == nullptr)
+		|| (button_label.empty())
 		|| (x < 0)
 		|| (y < 0)
 		|| (width < 0)
 		|| (height < 0))
 		return false;
 
-	HWND new_button_handle = create_button((unsigned char)button_controls.size(), wnd_handle, button_label, x, y, width,
+	std::wstring button_w_label = string_2_wstring(button_label);
+	HWND new_button_handle = create_button((unsigned char)button_controls.size(), wnd_handle, button_w_label.c_str(), x, y, width,
 	                                       height);
 	button_handles.emplace_back(new_button_handle);
 	button_controls.emplace_back(control);
@@ -465,29 +510,30 @@ bool Win_GUI::Window::add_button(bool *control, LPCWSTR button_label, int x, int
 	return true;
 }
 
-bool Win_GUI::Window::add_group_box(LPCWSTR button_label, int x, int y, int width, int height) const {
+bool Win_GUI::Window::add_group_box(std::string group_box_label, int x, int y, int width, int height) const {
 
-	if ((button_label == nullptr)
+	if ((group_box_label.empty())
 		|| (x < 0)
 		|| (y < 0)
 		|| (width < 0)
 		|| (height < 0))
 		return false;
 
-	create_group_box(wnd_handle, button_label, x, y, width, height);
+	std::wstring gbox_w_label = string_2_wstring(group_box_label);
+	create_group_box(wnd_handle, gbox_w_label.c_str(), x, y, width, height);
 	return true;
 }
 
-bool Win_GUI::Window::add_check_box(bool *control, LPCWSTR check_box_label, int x, int y) {
+bool Win_GUI::Window::add_check_box(bool *control, std::string check_box_label, int x, int y) {
 
-	if ((check_box_label == nullptr)
+	if ((check_box_label.empty())
 		|| (control == nullptr)
 		|| (x < 0)
 		|| (y < 0))
 		return false;
 
-	HWND new_check_box_handle = create_check_box((unsigned char)check_box_controls.size(), wnd_handle, check_box_label,
-	                                             x, y);
+	std::wstring check_box_w_label = string_2_wstring(check_box_label);
+	HWND new_check_box_handle = create_check_box((unsigned char)check_box_controls.size(), wnd_handle, check_box_w_label.c_str(), x, y);
 
 	check_box_controls.emplace_back(control);
 	check_box_handles.emplace_back(new_check_box_handle);
@@ -514,12 +560,17 @@ bool Win_GUI::Window::add_pane(int x, int y, int width, int height) const {
 	return true;
 }
 
-bool Win_GUI::Window::add_rich_text_input(std::string *buffer, int x, int y, int width, int height, bool v_scroll,
-                                          bool h_scroll) {
+bool Win_GUI::Window::add_rich_text_input(std::string *buffer, std::string name, int x, int y, int width, int height, bool v_scroll, bool h_scroll, bool is_password) {
 
 	if ((x < 0) || (y < 0) || (width <= 0) || (height <= 0))
 		return false;
 
+	if (!name.empty()) {
+		add_label(name, x, y);
+		height -= FONT_HEIGHT;
+		y += FONT_HEIGHT;
+	}
+	
 	DWORD dwStyle = WS_CHILD | WS_VISIBLE | ES_MULTILINE;
 
 	if (v_scroll)
@@ -528,17 +579,25 @@ bool Win_GUI::Window::add_rich_text_input(std::string *buffer, int x, int y, int
 	if (h_scroll)
 		dwStyle |= WS_HSCROLL;
 
-	HWND new_text_field = create_rich_text_input((unsigned char)text_field_handles.size(), wnd_handle, x, y, width,
-	                                             height,
-	                                             dwStyle);
+	if(is_password) {
+		dwStyle = WS_CHILD | WS_VISIBLE | ES_PASSWORD;
+		height = 22;
+	}
+		
+	HWND new_text_field = create_rich_text_input((unsigned char)text_field_handles.size(), wnd_handle, x, y, width, height, dwStyle);
 	text_field_handles.emplace_back((new_text_field));
 	rich_text_buffers.emplace_back(buffer);
 
 	return true;
 }
 
-bool Win_GUI::Window::add_int_input(int *control, int x, int y, int width, int min, int max) {
+bool Win_GUI::Window::add_int_input(int *control, std::string name, int x, int y, int width, int min, int max) {
 
+	if (!name.empty()) {
+		add_label(name, x, y);
+		y += FONT_HEIGHT;
+	}
+	
 	HWND buddy_wnd_handle = create_int_input((unsigned char)int_input_controls.size(), wnd_handle, x, y, width, min,
 	                                         max);
 	int_input_controls.emplace_back(control);
@@ -546,9 +605,40 @@ bool Win_GUI::Window::add_int_input(int *control, int x, int y, int width, int m
 	return true;
 }
 
-bool Win_GUI::Window::add_float_input(float *control, int x, int y, int width) {
+bool Win_GUI::Window::add_float_input(float *control, std::string name, int x, int y, int width) {
 
-	create_float_input(0, wnd_handle, x, y, width);
+	if (!name.empty()) {
+		add_label(name, x, y);
+		y += FONT_HEIGHT;
+	}
+	
+	create_float_input(float_input_controls.size(), wnd_handle, x, y, width);
+
+	float_input_controls.emplace_back(control);
+	
+	return true;
+}
+
+bool Win_GUI::Window::add_label(std::string label_text, int x, int y) {
+
+
+	std::wstring label_w_text = string_2_wstring(label_text);
+	HWND result = CreateWindowExW(
+		0,
+		WC_STATIC,
+		label_w_text.c_str(),
+		WS_CHILD|WS_VISIBLE|SS_LEFT,
+		x,
+		y,
+		label_w_text.size()*6,
+		FONT_HEIGHT,
+		wnd_handle,
+		0,
+		GetModuleHandle(nullptr),
+		0);
+
+	SendMessage(result, WM_SETFONT, (WPARAM)(HFONT)GetStockObject(DEFAULT_GUI_FONT), MAKELPARAM(TRUE, 0));
 
 	return true;
+	
 }
