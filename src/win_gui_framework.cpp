@@ -12,7 +12,6 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #define RICH_TEXT_INPUT 0x03
 #define INT_INPUT 0x04
 #define FLOAT_INPUT 0x05
-#define LIST_BOX 0x06
 
 namespace {
 
@@ -434,9 +433,6 @@ namespace {
 
 	}
 
-	HWND create_list_box(unsigned char id, HWND parent, int x, int y, int width, int height) {
-		return NULL;
-	}
 }
 
 Win_GUI::Window::Window(std::string title_label, int width, int height, bool is_size_fixed) {
@@ -642,3 +638,87 @@ bool Win_GUI::Window::add_label(std::string label_text, int x, int y) {
 	return true;
 	
 }
+
+Win_GUI::List_Box Win_GUI::Window::add_list_box(std::string name, int x, int y, int width, int height, bool multiple_selection) {
+
+	if (!name.empty()) {
+		add_label(name, x, y);
+		y += FONT_HEIGHT;
+		height -= FONT_HEIGHT;
+	}
+	List_Box result(name, x, y, width, height, wnd_handle, multiple_selection);
+
+	return result;
+}
+
+Win_GUI::List_Box::List_Box(std::string name, int x, int y, int width, int height, HWND parent, bool multiple_selection) : name(name){
+
+	DWORD style = WS_CHILD|WS_VISIBLE|WS_VSCROLL|LBS_DISABLENOSCROLL;
+
+	if(multiple_selection)
+		style|=LBS_MULTIPLESEL;
+	
+	list_box_handle = CreateWindowExW(
+		WS_EX_CLIENTEDGE,
+		WC_LISTBOX,
+		nullptr,
+		style,
+		x,
+		y,
+		width,
+		height,
+		parent,
+		nullptr,
+		GetModuleHandle(nullptr),
+		0);
+
+	SendMessage(list_box_handle, WM_SETFONT, (WPARAM)(HFONT)GetStockObject(DEFAULT_GUI_FONT), MAKELPARAM(TRUE, 0));
+}
+
+bool Win_GUI::List_Box::add_item(std::string item) {
+
+	if (item.empty())
+		return false;
+
+	std::wstring w_item = string_2_wstring(item);
+	SendMessage(list_box_handle,LB_ADDSTRING, 0, (LPARAM)w_item.c_str());
+	return true;
+}
+
+bool Win_GUI::List_Box::remove_item(int index) {
+
+	int result = SendMessage(list_box_handle,LB_DELETESTRING,(WPARAM)index,0);
+	
+	if(result==LB_ERR)
+		return false;
+
+	return true;
+}
+
+int Win_GUI::List_Box::get_selected_index() {
+
+	int result = SendMessage(list_box_handle,LB_GETCURSEL,0,0);
+
+	if(result == LB_ERR)
+		return -1;
+	
+	return result;
+}
+
+void Win_GUI::List_Box::clear() {
+	SendMessage(list_box_handle,LB_RESETCONTENT,0,0);
+}
+
+std::vector<int> Win_GUI::List_Box::get_selected_indexes() {
+
+	int count = SendMessage(list_box_handle,LB_GETSELCOUNT, 0, 0);
+
+	if (count < 0)
+		return std::vector<int>(1, -1);
+
+	std::vector<int> result(count);
+	SendMessage(list_box_handle,LB_GETSELITEMS, count, (LPARAM)result.data());
+
+	return result;
+}
+

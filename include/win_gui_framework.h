@@ -4,6 +4,19 @@
 
 namespace Win_GUI {
 
+	class List_Box {
+	private:
+		std::string name;
+		HWND list_box_handle;
+	public:
+		List_Box(std::string name, int x, int y, int width, int height, HWND parent, bool multiple_selection);
+		bool add_item(std::string item);
+		bool remove_item(int index);
+		int get_selected_index();
+		void clear();
+		std::vector<int> get_selected_indexes();
+	};
+
 	class Window {
 	private:
 		std::vector<HWND> button_handles;
@@ -12,6 +25,7 @@ namespace Win_GUI {
 		HWND wnd_handle = nullptr;
 		WNDCLASS wnd_class = {};
 
+		
 	public:
 		Window(std::string title_label, int width, int height, bool is_size_fixed);
 
@@ -33,6 +47,8 @@ namespace Win_GUI {
 		bool add_float_input(float *control, std::string name, int x, int y, int width);
 
 		bool add_label(std::string label_text, int x, int y);
+
+		List_Box add_list_box(std::string name, int x, int y, int width, int height, bool multiple_selection);
 		
 		// TODO: Secure from multiple calls
 		HWND show_window() const;
