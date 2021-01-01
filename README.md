@@ -1,2 +1,2 @@
 # EasyWin GUI
-Compact framework for creating graphical user interface for Windows C++ applications faster, with less code.
+Compact C++ library for creating graphical user interface for desktop Windows applications with WinAPI faster, with less code.

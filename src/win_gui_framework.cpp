@@ -435,6 +435,10 @@ namespace {
 
 }
 
+
+
+
+
 Win_GUI::Window::Window(std::string title_label, int width, int height, bool is_size_fixed) {
 
 	DWORD style;
@@ -639,6 +643,10 @@ bool Win_GUI::Window::add_label(std::string label_text, int x, int y) {
 	
 }
 
+
+
+
+
 Win_GUI::List_Box Win_GUI::Window::add_list_box(std::string name, int x, int y, int width, int height, bool multiple_selection) {
 
 	if (!name.empty()) {
@@ -646,19 +654,19 @@ Win_GUI::List_Box Win_GUI::Window::add_list_box(std::string name, int x, int y, 
 		y += FONT_HEIGHT;
 		height -= FONT_HEIGHT;
 	}
-	List_Box result(name, x, y, width, height, wnd_handle, multiple_selection);
+	List_Box result(x, y, width, height, wnd_handle, multiple_selection);
 
 	return result;
 }
 
-Win_GUI::List_Box::List_Box(std::string name, int x, int y, int width, int height, HWND parent, bool multiple_selection) : name(name){
+Win_GUI::List_Box::List_Box(int x, int y, int width, int height, HWND parent, bool multiple_selection) {
 
 	DWORD style = WS_CHILD|WS_VISIBLE|WS_VSCROLL|LBS_DISABLENOSCROLL;
 
 	if(multiple_selection)
 		style|=LBS_MULTIPLESEL;
 	
-	list_box_handle = CreateWindowExW(
+	handle = CreateWindowExW(
 		WS_EX_CLIENTEDGE,
 		WC_LISTBOX,
 		nullptr,
@@ -672,22 +680,22 @@ Win_GUI::List_Box::List_Box(std::string name, int x, int y, int width, int heigh
 		GetModuleHandle(nullptr),
 		0);
 
-	SendMessage(list_box_handle, WM_SETFONT, (WPARAM)(HFONT)GetStockObject(DEFAULT_GUI_FONT), MAKELPARAM(TRUE, 0));
+	SendMessage(handle, WM_SETFONT, (WPARAM)(HFONT)GetStockObject(DEFAULT_GUI_FONT), MAKELPARAM(TRUE, 0));
 }
 
-bool Win_GUI::List_Box::add_item(std::string item) {
+bool Win_GUI::List_Box::add_item(std::string item) const {
 
 	if (item.empty())
 		return false;
 
 	std::wstring w_item = string_2_wstring(item);
-	SendMessage(list_box_handle,LB_ADDSTRING, 0, (LPARAM)w_item.c_str());
+	SendMessage(handle,LB_ADDSTRING, 0, (LPARAM)w_item.c_str());
 	return true;
 }
 
-bool Win_GUI::List_Box::remove_item(int index) {
+bool Win_GUI::List_Box::remove_item(int index) const {
 
-	int result = SendMessage(list_box_handle,LB_DELETESTRING,(WPARAM)index,0);
+	int result = SendMessage(handle,LB_DELETESTRING,(WPARAM)index,0);
 	
 	if(result==LB_ERR)
 		return false;
@@ -695,9 +703,9 @@ bool Win_GUI::List_Box::remove_item(int index) {
 	return true;
 }
 
-int Win_GUI::List_Box::get_selected_index() {
+int Win_GUI::List_Box::get_selected_index() const {
 
-	int result = SendMessage(list_box_handle,LB_GETCURSEL,0,0);
+	int result = SendMessage(handle,LB_GETCURSEL,0,0);
 
 	if(result == LB_ERR)
 		return -1;
@@ -705,20 +713,100 @@ int Win_GUI::List_Box::get_selected_index() {
 	return result;
 }
 
-void Win_GUI::List_Box::clear() {
-	SendMessage(list_box_handle,LB_RESETCONTENT,0,0);
+void Win_GUI::List_Box::clear() const {
+	SendMessage(handle,LB_RESETCONTENT,0,0);
 }
 
-std::vector<int> Win_GUI::List_Box::get_selected_indexes() {
+std::vector<int> Win_GUI::List_Box::get_selected_indexes() const {
 
-	int count = SendMessage(list_box_handle,LB_GETSELCOUNT, 0, 0);
+	int count = SendMessage(handle,LB_GETSELCOUNT, 0, 0);
 
 	if (count < 0)
 		return std::vector<int>(1, -1);
 
 	std::vector<int> result(count);
-	SendMessage(list_box_handle,LB_GETSELITEMS, count, (LPARAM)result.data());
+	SendMessage(handle,LB_GETSELITEMS, count, (LPARAM)result.data());
 
 	return result;
 }
 
+
+
+
+
+Win_GUI::Combo_Box Win_GUI::Window::add_combo_box(std::string name, int x, int y, int width) {
+
+	if (!name.empty()) {
+		add_label(name, x, y);
+		y += FONT_HEIGHT;
+	}
+	Combo_Box result(x, y, width, wnd_handle);
+
+	return result;
+}
+
+Win_GUI::Combo_Box::Combo_Box(int x, int y, int width, HWND parent) {
+	
+	handle = CreateWindowExW(
+		WS_EX_CLIENTEDGE,
+		WC_COMBOBOX,
+		nullptr,
+		WS_CHILD|WS_VISIBLE|CBS_DROPDOWNLIST,
+		x,
+		y,
+		width,
+		100,
+		parent,
+		nullptr,
+		GetModuleHandle(nullptr),
+		nullptr);
+
+	SendMessage(handle, WM_SETFONT, (WPARAM)(HFONT)GetStockObject(DEFAULT_GUI_FONT), MAKELPARAM(TRUE, 0));
+	EnableWindow(handle,false);
+}
+
+bool Win_GUI::Combo_Box::add_item(std::string item) const {
+
+	if (item.empty())
+		return false;
+
+	int count = SendMessage(handle,CB_GETCOUNT,0,0);
+	
+	if(!count)
+		EnableWindow(handle,true);
+	
+	std::wstring w_item = string_2_wstring(item);
+	SendMessage(handle,CB_ADDSTRING, 0, (LPARAM)w_item.c_str());
+
+	return true;
+}
+
+bool Win_GUI::Combo_Box::remove_item(int index) const {
+
+	int result = SendMessage(handle,CB_DELETESTRING,(WPARAM)index,0);
+	
+	if(result==LB_ERR)
+		return false;
+
+	int count = SendMessage(handle,CB_GETCOUNT,(WPARAM)index,0);
+	
+	if(!count)
+		EnableWindow(handle,false);
+	
+	return true;
+}
+
+int Win_GUI::Combo_Box::get_selected_index() const {
+
+	int result = SendMessage(handle,CB_GETCURSEL,0,0);
+
+	if(result == LB_ERR)
+		return -1;
+	
+	return result;
+}
+
+void Win_GUI::Combo_Box::clear() const {
+	SendMessage(handle,CB_RESETCONTENT,0,0);
+	EnableWindow(handle,false);
+}
