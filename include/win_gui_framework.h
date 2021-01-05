@@ -72,6 +72,8 @@ namespace Win_GUI {
 		List_Box add_list_box(std::string name, int x, int y, int width, int height, bool multiple_selection);
 
 		Combo_Box add_combo_box(std::string name, int x, int y, int width);
+
+		bool add_radio_button(int *control, std::string rb_label, int x, int y, bool is_first);
 		
 		// TODO: Secure from multiple calls
 		HWND show_window() const;

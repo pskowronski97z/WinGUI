@@ -7,11 +7,13 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #include <string>
 
 #define FONT_HEIGHT 16
-#define BUTTON 0x01
-#define CHECK_BOX 0x02
-#define RICH_TEXT_INPUT 0x03
-#define INT_INPUT 0x04
-#define FLOAT_INPUT 0x05
+#define RB_GROUPS_LIMIT 0xc0
+#define BUTTON 0xc1
+#define CHECK_BOX 0xc2
+#define RICH_TEXT_INPUT 0xc3
+#define INT_INPUT 0xc4
+#define FLOAT_INPUT 0xc5
+#define DEFAULT 0xFF00
 
 namespace {
 
@@ -21,8 +23,10 @@ namespace {
 	std::vector<std::string*> rich_text_buffers;
 	std::vector<int*> int_input_controls;
 	std::vector<float*> float_input_controls;
+	std::vector<int*> rb_group_controls;
 	bool is_window_initialized = false;
-
+	unsigned char rb_count = 0;
+	
 	std::string wchar_t_2_string(wchar_t *text, int length) {
 
 		std::string result;
@@ -227,7 +231,7 @@ namespace {
 					catch (...) { std::cout << "Invalid integer input" << std::endl; }
 				}
 				break;
-			case FLOAT_INPUT: {
+			case FLOAT_INPUT: 
 				if (HIWORD(W_param) == WM_MOUSEMOVE) {
 					buffer_size = GetWindowTextLength((HWND)L_param);
 					text_field_buffer = new wchar_t[buffer_size];
@@ -236,10 +240,11 @@ namespace {
 
 					*float_input_controls[LOBYTE(W_param)] = std::stof(number_string);
 				}
-			break;	
-			}
+				break;			
 			default:
-				break;
+				if (HIBYTE(W_param) >= 0 && HIBYTE(W_param) <= 0xc0)
+					*(rb_group_controls[HIBYTE(W_param)]) = LOBYTE(W_param);
+				break;					
 			}
 			break;
 		default:
@@ -313,7 +318,7 @@ namespace {
 			width,
 			height,
 			parent,
-			nullptr,
+			(HMENU)DEFAULT,
 			GetModuleHandle(nullptr),
 			nullptr);
 
@@ -554,7 +559,7 @@ bool Win_GUI::Window::add_pane(int x, int y, int width, int height) const {
 		width,
 		height,
 		wnd_handle,
-		nullptr,
+		(HMENU)DEFAULT,
 		GetModuleHandle(nullptr),
 		nullptr);
 	return true;
@@ -633,7 +638,7 @@ bool Win_GUI::Window::add_label(std::string label_text, int x, int y) {
 		label_w_text.size()*6,
 		FONT_HEIGHT,
 		wnd_handle,
-		0,
+		(HMENU)DEFAULT,
 		GetModuleHandle(nullptr),
 		0);
 
@@ -641,6 +646,48 @@ bool Win_GUI::Window::add_label(std::string label_text, int x, int y) {
 
 	return true;
 	
+}
+
+bool Win_GUI::Window::add_radio_button(int* control, std::string rb_label, int x, int y, bool is_first)
+{
+	if ((rb_label.empty())
+		|| (control == nullptr && is_first)
+		|| (x < 0)
+		|| (y < 0)
+		|| (is_first && (rb_group_controls.size() > RB_GROUPS_LIMIT))
+		|| (rb_count > 0xFF)
+		|| (!is_first && rb_group_controls.empty()))
+		return false;
+
+	std::wstring rb_w_label = string_2_wstring(rb_label);
+	DWORD style = WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON;
+
+	if (is_first) {
+		style |= WS_GROUP;
+		rb_group_controls.emplace_back(control);
+		rb_count=0;
+	}
+
+	unsigned short w_param = (rb_group_controls.size() - 1) << 8 | rb_count;
+
+	HWND result = CreateWindowExW(
+		0,
+		L"BUTTON",
+		rb_w_label.c_str(),
+		style,
+		x,
+		y,
+		12 + rb_label.length() * 6,
+		12,
+		wnd_handle,
+		(HMENU)w_param,
+		GetModuleHandle(nullptr),
+		nullptr);
+
+	SendMessage(result, WM_SETFONT, (WPARAM)((HFONT)GetStockObject(DEFAULT_GUI_FONT)), MAKELPARAM(TRUE, 0));
+	rb_count++;
+
+	return true;
 }
 
 
@@ -676,7 +723,7 @@ Win_GUI::List_Box::List_Box(int x, int y, int width, int height, HWND parent, bo
 		width,
 		height,
 		parent,
-		nullptr,
+		(HMENU)DEFAULT,
 		GetModuleHandle(nullptr),
 		0);
 
@@ -757,7 +804,7 @@ Win_GUI::Combo_Box::Combo_Box(int x, int y, int width, HWND parent) {
 		width,
 		100,
 		parent,
-		nullptr,
+		(HMENU)DEFAULT,
 		GetModuleHandle(nullptr),
 		nullptr);
 
