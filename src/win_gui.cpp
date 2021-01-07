@@ -2,9 +2,8 @@
 name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
 processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #include <iostream>
-#include <win_gui_framework.h>
+#include <win_gui.h>
 #include <CommCtrl.h>
-#include <string>
 
 #define FONT_HEIGHT 16
 #define RB_GROUPS_LIMIT 0xc0
@@ -13,8 +12,12 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #define RICH_TEXT_INPUT 0xc3
 #define INT_INPUT 0xc4
 #define FLOAT_INPUT 0xc5
+#define TAB_CONTROL 0xc6
 #define DEFAULT 0xFF00
 
+/// <summary>
+/// This namespace represents whole GUI context runned by thread 
+/// </summary>
 namespace {
 
 	WNDPROC std_edit_proc = nullptr;
@@ -24,6 +27,7 @@ namespace {
 	std::vector<int*> int_input_controls;
 	std::vector<float*> float_input_controls;
 	std::vector<int*> rb_group_controls;
+	std::vector<Win_GUI::Tab> tab_controls;
 	bool is_window_initialized = false;
 	unsigned char rb_count = 0;
 	
@@ -152,7 +156,7 @@ namespace {
 		return result;
 	}
 	
-	INT_PTR CALLBACK DlgProc(HWND Window_handle, UINT Message, WPARAM W_param, LPARAM L_param) {
+	/*INT_PTR CALLBACK DlgProc(HWND Window_handle, UINT Message, WPARAM W_param, LPARAM L_param) {
 		switch (Message) {
 		case WM_CLOSE:
 			PostQuitMessage(404);
@@ -176,36 +180,55 @@ namespace {
 
 		default: return FALSE;
 		}
-	}
+	}*/
 
+	DWORD buffer_size = 0;
+	wchar_t *text_field_buffer = nullptr;
+	std::string number_string;
+	LPNMHDR id = 0;
+	int index = 0;
+	
 	LRESULT CALLBACK wnd_procedure(HWND Window_handle, UINT Message, WPARAM W_param, LPARAM L_param) {
 
 		if (!is_window_initialized)
 			return DefWindowProcW(Window_handle, Message, W_param, L_param);
 
-		DWORD buffer_size;
-		wchar_t *text_field_buffer=nullptr;
-		wchar_t *text_field_buffer_2=nullptr;
-		std::string number_string;
-
 		switch (Message) {
+		case WM_NOTIFY:
+			id = (LPNMHDR)L_param;
+			if (id->code == TCN_SELCHANGE) {
+				for (auto &tab : tab_controls) {
+					if (tab.get_handle() == id->hwndFrom) {
+						index = TabCtrl_GetCurSel(tab.get_handle());
+						tab.show_distinct(index);
+						break;
+					}
+				}
+			}
+			break;
+			
 		case WM_DESTROY:
 			PostQuitMessage(404);
 			std::cout << "Quit" << std::endl;
 			break;
+			
 		case WM_LBUTTONDOWN:
 			std::cout << "Mouse down" << std::endl;
 			break;
+			
 		case WM_LBUTTONUP:
 			std::cout << "Mouse up" << std::endl;
 			break;
+			
 		case WM_COMMAND:
 			bool *control_ptr;
+			
 			switch (HIBYTE(W_param)) {
 			case BUTTON:
 				control_ptr = button_controls[LOBYTE(W_param)];
 				*control_ptr = true;
 				break;
+				
 			case CHECK_BOX:
 				control_ptr = check_box_controls[LOBYTE(W_param)];
 				(*control_ptr) = !(*control_ptr);
@@ -214,12 +237,14 @@ namespace {
 				else
 					CheckDlgButton(Window_handle, W_param,BST_UNCHECKED);
 				break;
+				
 			case RICH_TEXT_INPUT:
 				buffer_size = GetWindowTextLength((HWND)L_param);
 				text_field_buffer = new wchar_t[buffer_size];
 				GetWindowText((HWND)L_param, (LPWSTR)text_field_buffer, buffer_size + 1);
 				*rich_text_buffers[LOBYTE(W_param)] = wchar_t_2_string(text_field_buffer, buffer_size);
 				break;
+				
 			case INT_INPUT:   // Przerobiæ na parsowanie w ten sam sposób co float
 				if (LOBYTE(W_param) < int_input_controls.size()) {
 					buffer_size = GetWindowTextLength((HWND)L_param);
@@ -231,6 +256,7 @@ namespace {
 					catch (...) { std::cout << "Invalid integer input" << std::endl; }
 				}
 				break;
+				
 			case FLOAT_INPUT: 
 				if (HIWORD(W_param) == WM_MOUSEMOVE) {
 					buffer_size = GetWindowTextLength((HWND)L_param);
@@ -240,13 +266,16 @@ namespace {
 
 					*float_input_controls[LOBYTE(W_param)] = std::stof(number_string);
 				}
-				break;			
+				break;
+				
 			default:
 				if (HIBYTE(W_param) >= 0 && HIBYTE(W_param) <= 0xc0)
 					*(rb_group_controls[HIBYTE(W_param)]) = LOBYTE(W_param);
-				break;					
+				break;
+				
 			}
 			break;
+			
 		default:
 			return DefWindowProcW(Window_handle, Message, W_param, L_param);
 		}
@@ -444,6 +473,7 @@ namespace {
 
 
 
+
 Win_GUI::Window::Window(std::string title_label, int width, int height, bool is_size_fixed) {
 
 	DWORD style;
@@ -481,6 +511,36 @@ Win_GUI::Window::Window(std::string title_label, int width, int height, bool is_
 		nullptr);
 }
 
+Win_GUI::Window::Window(int x, int y, int width, int height, HWND parent) {
+
+	wnd_class.lpszClassName = L"content_container";
+	wnd_class.lpfnWndProc = wnd_procedure;
+	wnd_class.hInstance = GetModuleHandle(nullptr);
+	wnd_class.hCursor = nullptr;
+	wnd_class.hIcon = nullptr;
+	wnd_class.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
+	wnd_class.lpszMenuName = nullptr;
+	wnd_class.style = 0;
+	wnd_class.cbClsExtra = 0;
+	wnd_class.cbWndExtra = 1;
+
+	RegisterClass(&wnd_class);
+
+	wnd_handle = CreateWindow(
+		L"content_container",
+		L"",
+		WS_CHILD,
+		x,
+		y,
+		width,
+		height,
+		parent,
+		nullptr,
+		GetModuleHandle(nullptr),
+		nullptr);
+	
+}
+
 void Win_GUI::Window::show_window_async() const {
 	ShowWindow(wnd_handle, 1);
 	MSG msg;
@@ -490,10 +550,13 @@ void Win_GUI::Window::show_window_async() const {
 	}
 }
 
-HWND Win_GUI::Window::show_window() const {
-	ShowWindow(wnd_handle, 1);
+void Win_GUI::Window::show_window() const {
+	ShowWindow(wnd_handle, SW_SHOW);
 	is_window_initialized = true;
-	return wnd_handle;
+}
+
+void Win_GUI::Window::hide_window() {
+	ShowWindow(wnd_handle,SW_HIDE);
 }
 
 bool Win_GUI::Window::add_button(bool *control, std::string button_label, int x, int y, int width, int height) {
@@ -690,6 +753,20 @@ bool Win_GUI::Window::add_radio_button(int* control, std::string rb_label, int x
 	return true;
 }
 
+Win_GUI::Tab& Win_GUI::Window::add_tab(int x, int y, int width, int height) {
+
+	Tab result(x,y,width,height,wnd_handle);
+	tab_controls.emplace_back(result);
+	return tab_controls.at(tab_controls.size()-1);
+}
+
+Win_GUI::Window Win_GUI::Window::add_content_container(int x, int y, int width, int height) {
+
+	Window content_pane(x,y,width,height,wnd_handle);
+	return content_pane;
+}
+
+
 
 
 
@@ -781,6 +858,7 @@ std::vector<int> Win_GUI::List_Box::get_selected_indexes() const {
 
 
 
+
 Win_GUI::Combo_Box Win_GUI::Window::add_combo_box(std::string name, int x, int y, int width) {
 
 	if (!name.empty()) {
@@ -857,3 +935,66 @@ void Win_GUI::Combo_Box::clear() const {
 	SendMessage(handle,CB_RESETCONTENT,0,0);
 	EnableWindow(handle,false);
 }
+
+
+
+
+
+
+Win_GUI::Tab::Tab(int x, int y, int width, int height, HWND parent) : x(x), y(y), width(width), height(height), parent(parent) {
+
+	handle = CreateWindowEx(
+		0,
+		WC_TABCONTROL,
+		0,
+		WS_CHILD | WS_VISIBLE ,
+		x,
+		y,
+		width,
+		height,
+		parent,
+		nullptr,
+		GetModuleHandle(nullptr),
+		nullptr);
+
+	SendMessage(handle, WM_SETFONT, (WPARAM)((HFONT)GetStockObject(DEFAULT_GUI_FONT)), MAKELPARAM(TRUE, 0));
+}
+
+bool Win_GUI::Tab::add_content(std::string tab_name, Window content) {
+	std::wstring tab_w_name = string_2_wstring(tab_name);
+	wchar_t *text = new wchar_t[tab_w_name.size() + 1];
+
+	int i = 0;
+
+	for (auto &wchar : tab_w_name) {
+		text[i] = wchar;
+		i++;
+	}
+
+	text[i] = L'\0';
+	TCITEM tcitem;
+	tcitem.mask = TCIF_TEXT;
+	tcitem.pszText = text;
+	tcitem.cchTextMax = tab_w_name.size();
+	TabCtrl_InsertItem(handle, contents.size(), & tcitem);
+
+	contents.emplace_back(content);
+	delete [] text;
+	return true;
+}
+
+bool Win_GUI::Tab::show_distinct(int index) {
+	if(index >= contents.size())
+		return false;
+
+	for(auto &wnd : contents)
+		wnd.hide_window();
+
+	contents[index].show_window();
+	return true;
+}
+
+HWND Win_GUI::Tab::get_handle() const {
+	return handle;
+}
+

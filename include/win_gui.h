@@ -1,8 +1,10 @@
 #pragma once
+#include <string>
 #include <vector>
 #include <Windows.h>
 
 namespace Win_GUI {
+	class Tab;
 
 	class List {
 	protected:
@@ -48,8 +50,25 @@ namespace Win_GUI {
 		WNDCLASS wnd_class = {};
 
 	public:
+		/// <summary>
+		/// Overlapped system window constructor
+		/// </summary>
+		/// <param name="title_label"></param>
+		/// <param name="width"></param>
+		/// <param name="height"></param>
+		/// <param name="is_size_fixed"></param>
 		Window(std::string title_label, int width, int height, bool is_size_fixed);
 
+		/// <summary>
+		/// Content container constructor
+		/// </summary>
+		/// <param name="x"></param>
+		/// <param name="y"></param>
+		/// <param name="width"></param>
+		/// <param name="height"></param>
+		/// <param name="parent"></param>
+		Window(int x, int y, int width, int height, HWND parent);
+		
 		// TODO: Documentation
 		bool add_button(bool *control, std::string button_label, int x, int y, int width, int height);
 
@@ -74,11 +93,35 @@ namespace Win_GUI {
 		Combo_Box add_combo_box(std::string name, int x, int y, int width);
 
 		bool add_radio_button(int *control, std::string rb_label, int x, int y, bool is_first);
+
+		Tab& add_tab(int x, int y, int width, int height);
+
+		Window add_content_container(int x, int y, int width, int height);
 		
 		// TODO: Secure from multiple calls
-		HWND show_window() const;
+		void show_window() const;
 
+		void hide_window();
+		
 		// TODO: Secure from multiple calls
 		void show_window_async() const;
 	};
+
+	class Tab {
+	private:
+		HWND parent;
+		HWND handle;
+		int x;
+		int y;
+		int width;
+		int height;
+		std::vector<Window> contents;
+	
+	public:
+		Tab(int x, int y, int width, int height, HWND parent);
+		bool add_content(std::string tab_name, Window content);
+		bool show_distinct(int index);
+		HWND get_handle() const;
+	};
+	
 }
