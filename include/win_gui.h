@@ -2,10 +2,12 @@
 #include <string>
 #include <vector>
 #include <Windows.h>
+#include <CommCtrl.h>
 
 namespace Win_GUI {
 	class Tab;
-
+	class Tree_View;
+	
 	class List {
 	protected:
 		HWND handle = nullptr;
@@ -97,6 +99,8 @@ namespace Win_GUI {
 		Tab& add_tab(int x, int y, int width, int height);
 
 		Window add_content_container(int x, int y, int width, int height);
+
+		bool add_progress_bar(int x, int y, int width, int height);
 		
 		// TODO: Secure from multiple calls
 		void show_window() const;
@@ -105,6 +109,8 @@ namespace Win_GUI {
 		
 		// TODO: Secure from multiple calls
 		void show_window_async() const;
+
+		Tree_View& add_tree_view(int x, int y, int width, int height);
 	};
 
 	class Tab {
@@ -122,6 +128,28 @@ namespace Win_GUI {
 		bool add_content(std::string tab_name, Window content);
 		bool show_distinct(int index);
 		HWND get_handle() const;
+	};
+
+	class Tree_View {
+	private:
+		HWND parent_wnd_handle;
+		HWND tv_handle;
+		std::string name;
+		int x;
+		int y;
+		int width;
+		int height;
+		std::vector<TVITEM> items;
+		int selected_item;
+		
+	public:
+		Tree_View(std::string name, HWND parent, int x, int y, int width, int height);
+		bool add_item(std::string item_name, int parent_index);
+		bool remove_item(int index);
+		bool clear();
+		int set_selected_item(HTREEITEM item_handle);
+		int get_selected_item();
+		HWND get_handle();
 	};
 	
 }

@@ -3,7 +3,6 @@ name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
 processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #include <iostream>
 #include <win_gui.h>
-#include <CommCtrl.h>
 
 #define FONT_HEIGHT 16
 #define RB_GROUPS_LIMIT 0xc0
@@ -13,6 +12,7 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #define INT_INPUT 0xc4
 #define FLOAT_INPUT 0xc5
 #define TAB_CONTROL 0xc6
+#define TREE_VIEW 0xc7
 #define DEFAULT 0xFF00
 
 /// <summary>
@@ -27,7 +27,9 @@ namespace {
 	std::vector<int*> int_input_controls;
 	std::vector<float*> float_input_controls;
 	std::vector<int*> rb_group_controls;
+	// Przerobiæ na wektory wskaŸników
 	std::vector<Win_GUI::Tab> tab_controls;
+	std::vector<Win_GUI::Tree_View> tree_views;
 	bool is_window_initialized = false;
 	unsigned char rb_count = 0;
 	
@@ -50,7 +52,7 @@ namespace {
 	/// <param name="length">Length of the array including \0 terminating char</param>
 	/// <returns></returns>
 	wchar_t *format_float_input(const wchar_t *source, int length) {
-
+		
 		wchar_t *padding_buffer;
 		wchar_t *result;
 		int buffer_itr = 0;
@@ -187,6 +189,7 @@ namespace {
 	std::string number_string;
 	LPNMHDR id = 0;
 	int index = 0;
+	LPNMTREEVIEW nmtv;
 	
 	LRESULT CALLBACK wnd_procedure(HWND Window_handle, UINT Message, WPARAM W_param, LPARAM L_param) {
 
@@ -203,6 +206,28 @@ namespace {
 						tab.show_distinct(index);
 						break;
 					}
+				}
+			}
+			if (id->idFrom == TREE_VIEW) {
+				switch (id->code) {
+				case TVN_SELCHANGED:
+
+					nmtv = (LPNMTREEVIEW)L_param;
+
+					TVITEM new_it = nmtv->itemNew;
+
+					for(auto &tv : tree_views) {
+						if(tv.get_handle() == id->hwndFrom) {
+							tv.set_selected_item(new_it.hItem);
+							break;
+						}
+					}
+		
+					break;
+				case TVN_ENDLABELEDIT:
+					if (((LPNMTVDISPINFO)L_param)->item.pszText != NULL)
+						return true;
+					return false;
 				}
 			}
 			break;
@@ -550,6 +575,13 @@ void Win_GUI::Window::show_window_async() const {
 	}
 }
 
+Win_GUI::Tree_View& Win_GUI::Window::add_tree_view(int x, int y, int width, int height) {
+
+	Tree_View new_tree_view("NON",wnd_handle,x,y,width,height);
+	tree_views.emplace_back(new_tree_view);
+	return tree_views.at(tree_views.size()-1);
+}
+
 void Win_GUI::Window::show_window() const {
 	ShowWindow(wnd_handle, SW_SHOW);
 	is_window_initialized = true;
@@ -764,6 +796,28 @@ Win_GUI::Window Win_GUI::Window::add_content_container(int x, int y, int width, 
 
 	Window content_pane(x,y,width,height,wnd_handle);
 	return content_pane;
+}
+
+bool Win_GUI::Window::add_progress_bar(int x, int y, int width, int height) {
+
+	HWND result = CreateWindowExW(
+		WS_EX_CLIENTEDGE,
+		PROGRESS_CLASS,
+		0,
+		WS_CHILD | WS_VISIBLE | PBS_SMOOTH | PBS_SMOOTHREVERSE, 
+		x ,
+		y, 
+		width,
+		height,
+		wnd_handle,
+		(HMENU)0xc8, 
+		GetModuleHandle(nullptr), 
+		0);
+
+	SendMessage(result,PBM_SETPOS, (WPARAM)50,0);
+	
+	return true;
+	
 }
 
 
@@ -998,3 +1052,91 @@ HWND Win_GUI::Tab::get_handle() const {
 	return handle;
 }
 
+
+
+
+
+
+Win_GUI::Tree_View::Tree_View(std::string name, HWND parent, int x, int y, int width, int height)
+	: name(name),
+	  parent_wnd_handle(parent),
+	  x(x),
+	  y(y),
+	  width(width),
+	  height(height) {
+
+	tv_handle = CreateWindowExW(
+		WS_EX_CLIENTEDGE,
+		WC_TREEVIEW,
+		nullptr,
+		WS_CHILD | TVS_HASBUTTONS | TVS_LINESATROOT | TVS_HASLINES | WS_VISIBLE | TVS_SHOWSELALWAYS | TVS_EDITLABELS,
+		x,
+		y,
+		width, 
+		height,
+		parent,
+		(HMENU)TREE_VIEW,
+		GetModuleHandle(nullptr),
+		nullptr);
+
+}
+
+bool Win_GUI::Tree_View::add_item(std::string item_name, int parent_index) {
+
+	TVITEM new_item;
+	TVINSERTSTRUCT insert_struct;
+
+	std::wstring item_w_name = string_2_wstring(item_name);
+
+	new_item.mask = TVIF_TEXT | TVIF_HANDLE;
+	new_item.pszText = const_cast<wchar_t*>(item_w_name.c_str());
+
+	insert_struct.item = new_item;
+	insert_struct.hInsertAfter = nullptr;
+
+	if(parent_index >= 0 && parent_index < items.size() )
+		insert_struct.hParent = items[parent_index].hItem;
+	else
+		insert_struct.hParent = nullptr;
+	
+	new_item.hItem = TreeView_InsertItem(tv_handle, &insert_struct);
+	
+	items.emplace_back(new_item);
+	
+	return false;
+}
+
+bool Win_GUI::Tree_View::remove_item(int index) {
+
+	TreeView_DeleteItem(tv_handle, items[index].hItem);
+	items.erase(items.begin()+index);
+	return false;
+}
+
+bool Win_GUI::Tree_View::clear() {
+	TreeView_DeleteAllItems(tv_handle);
+	items.clear();
+	return true;
+}
+
+int Win_GUI::Tree_View::set_selected_item(HTREEITEM item_handle) {
+
+	selected_item = 0;
+	
+	for(auto &item : items) {
+		if(item.hItem == item_handle)
+			return 0;
+		selected_item++;
+	}
+
+	return -1;
+
+}
+
+int Win_GUI::Tree_View::get_selected_item() {
+	return selected_item;
+}
+
+HWND Win_GUI::Tree_View::get_handle() {
+	return tv_handle;
+}
