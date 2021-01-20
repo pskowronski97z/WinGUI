@@ -28,10 +28,6 @@ namespace WinGui {
 		VSCROLL = WS_VSCROLL
 	};
 	
-	// Constants >
-	constexpr auto default_wnd_class = L"default_wnd_class";
-	// < Constants
-
 	// Functions >
 	std::wstring string_to_wstring(std::string source);
 	// < Functions

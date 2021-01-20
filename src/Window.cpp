@@ -2,6 +2,10 @@
 #include <Context.h>
 #include <iostream>
 
+#include "Button.h"
+#define DEFAULT_WND_CLASS L"default_wnd_class"
+
+
 std::wstring WinGui::string_to_wstring(std::string source) {
 	std::wstring result;
 
@@ -12,6 +16,56 @@ std::wstring WinGui::string_to_wstring(std::string source) {
 
 
 LRESULT CALLBACK WinGui::Window::wnd_proc(HWND wnd_handle, UINT msg, WPARAM w_param, LPARAM l_param) {
+
+	static NMHDR nmhdr;
+	static Button *btn_pointer = nullptr;
+
+	switch (msg) {
+	case WM_COMMAND:
+
+		switch (HIBYTE(w_param) << 8) {
+		case BUTTON: {
+			btn_pointer = Context::get_btn_pointer(LOBYTE(w_param));
+			if (btn_pointer == nullptr)
+				break;
+
+			switch (HIWORD(w_param)) {
+			case BN_CLICKED:
+				btn_pointer->on_click();
+				break;
+
+			case BN_DBLCLK:
+				btn_pointer->on_double_click();
+				break;
+
+			case BN_KILLFOCUS:
+				btn_pointer->on_focus_lost();
+				break;
+
+			case BN_SETFOCUS:
+				btn_pointer->on_focus_set();
+				break;
+
+			default: break;
+			}
+			btn_pointer = nullptr;
+			break;		
+		}
+		//case RB etc.
+
+			
+		}	
+	case WM_NOTIFY:
+		
+		break;
+
+	case WM_CLOSE:
+		PostQuitMessage(404);
+		break;
+
+	default: break;
+	}
+
 	return DefWindowProc(wnd_handle, msg, w_param, l_param);
 }
 
@@ -19,7 +73,7 @@ WinGui::Window::Window(std::string title, int width, int height) : title_(title)
 
 	instance_ = GetModuleHandle(nullptr);
 
-	wnd_class_.lpszClassName = default_wnd_class;
+	wnd_class_.lpszClassName = DEFAULT_WND_CLASS;
 	wnd_class_.lpfnWndProc = wnd_proc;
 	wnd_class_.hInstance = instance_;
 	wnd_class_.hCursor = nullptr;
@@ -38,7 +92,7 @@ WinGui::Window::Window(std::string title, int width, int height) : title_(title)
 
 	wnd_handle_ = CreateWindowExW(
 		WS_EX_WINDOWEDGE,
-		default_wnd_class,
+		DEFAULT_WND_CLASS,
 		w_title.c_str(),
 		wnd_style_,
 		CW_USEDEFAULT,

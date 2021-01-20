@@ -1,5 +1,9 @@
 #pragma once
+#pragma comment(linker,"\"/manifestdependency:type='win32' \
+name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
+processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #include <vector>
+#include <Windows.h>
 
 #define FONT_HEIGHT 16
 #define RB_GROUPS_LIMIT 0xc000
@@ -28,5 +32,7 @@ namespace WinGui {
 		static bool register_gui_object(Window *wnd_pointer);
 		static bool register_gui_object(Button *btn_pointer);
 		static int get_btn_buffer_size();
+		static Button* get_btn_pointer(int index);
+		static Button* get_btn_pointer(HWND handle);
 	};
 }
