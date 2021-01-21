@@ -1,8 +1,8 @@
 #include <Window.h>
 #include <Context.h>
 #include <iostream>
+#include <Buttons.h>
 
-#include "Button.h"
 #define DEFAULT_WND_CLASS L"default_wnd_class"
 
 
@@ -17,17 +17,17 @@ std::wstring WinGui::string_to_wstring(std::string source) {
 
 LRESULT CALLBACK WinGui::Window::wnd_proc(HWND wnd_handle, UINT msg, WPARAM w_param, LPARAM l_param) {
 
-	static NMHDR nmhdr;
 	static Button *btn_pointer = nullptr;
 
 	switch (msg) {
 	case WM_COMMAND:
 
-		switch (HIBYTE(w_param) << 8) {
-		case BUTTON: {
+		if((HIBYTE(w_param) << 8) == BUTTON)
 			btn_pointer = Context::get_btn_pointer(LOBYTE(w_param));
-			if (btn_pointer == nullptr)
-				break;
+		else if((HIBYTE(w_param) << 8) == CHECK_BOX)
+			btn_pointer = Context::get_cb_pointer(LOBYTE(w_param));
+
+		if(btn_pointer != nullptr) {
 
 			switch (HIWORD(w_param)) {
 			case BN_CLICKED:
@@ -35,7 +35,7 @@ LRESULT CALLBACK WinGui::Window::wnd_proc(HWND wnd_handle, UINT msg, WPARAM w_pa
 				break;
 
 			case BN_DBLCLK:
-				btn_pointer->on_double_click();
+				btn_pointer->on_click();
 				break;
 
 			case BN_KILLFOCUS:
@@ -49,9 +49,11 @@ LRESULT CALLBACK WinGui::Window::wnd_proc(HWND wnd_handle, UINT msg, WPARAM w_pa
 			default: break;
 			}
 			btn_pointer = nullptr;
-			break;		
+			break;	
 		}
-		//case RB etc.
+
+		switch (HIBYTE(w_param) << 8) {
+		//case RB
 
 			
 		}	
