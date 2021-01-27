@@ -17,14 +17,15 @@ std::wstring WinGui::string_to_wstring(std::string source) {
 
 LRESULT CALLBACK WinGui::Window::wnd_proc(HWND wnd_handle, UINT msg, WPARAM w_param, LPARAM l_param) {
 
-	static Button *btn_pointer = nullptr;
-
+	Button *btn_pointer = nullptr;
+	unsigned short ctrl_class_id;
 	switch (msg) {
 	case WM_COMMAND:
 
-		if((HIBYTE(w_param) << 8) == BUTTON)
+		ctrl_class_id = (HIBYTE(w_param) << 8);
+		if(ctrl_class_id == BUTTON)
 			btn_pointer = Context::get_btn_pointer(LOBYTE(w_param));
-		else if((HIBYTE(w_param) << 8) == CHECK_BOX)
+		else if(ctrl_class_id == CHECK_BOX)
 			btn_pointer = Context::get_cb_pointer(LOBYTE(w_param));
 
 		if(btn_pointer != nullptr) {
@@ -48,7 +49,6 @@ LRESULT CALLBACK WinGui::Window::wnd_proc(HWND wnd_handle, UINT msg, WPARAM w_pa
 
 			default: break;
 			}
-			btn_pointer = nullptr;
 			break;	
 		}
 
@@ -80,7 +80,7 @@ WinGui::Window::Window(std::string title, int width, int height) : title_(title)
 	wnd_class_.hInstance = instance_;
 	wnd_class_.hCursor = nullptr;
 	wnd_class_.hIcon = nullptr;
-	wnd_class_.hbrBackground = (HBRUSH)(COLOR_ACTIVEBORDER + 1);
+	wnd_class_.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
 	wnd_class_.lpszMenuName = nullptr;
 	wnd_class_.style = 0;
 	wnd_class_.cbClsExtra = 0;
