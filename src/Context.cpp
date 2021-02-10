@@ -6,6 +6,7 @@ std::vector<WinGui::ClickButton*> WinGui::Context::btn_pointers_(0);
 std::vector<WinGui::CheckBox*> WinGui::Context::cb_pointers_(0);
 std::vector<WinGui::Input<std::string>*> WinGui::Context::rt_pointers_(0);
 std::vector<WinGui::Input<float>*> WinGui::Context::fp_in_pointers_(0);
+std::vector<WinGui::Input<int>*> WinGui::Context::int_in_pointers_(0);
 byte WinGui::Context::rb_counter_ = 0;
 
 
@@ -49,6 +50,15 @@ bool WinGui::Context::register_gui_object(Input<float> *fp_in_pointer) {
 	return true;
 }
 
+bool WinGui::Context::register_gui_object(Input<int> *int_in_pointer) {
+	if (int_in_pointer == nullptr)
+		return false;
+
+	int_in_pointers_.emplace_back(int_in_pointer);
+	return true;
+}
+
+
 
 int WinGui::Context::get_btn_buffer_size() { return btn_pointers_.size(); }
 
@@ -57,6 +67,8 @@ int WinGui::Context::get_cb_buffer_size() { return cb_pointers_.size(); }
 int WinGui::Context::get_rt_buffer_size() { return rt_pointers_.size(); }
 
 int WinGui::Context::get_fp_in_buffer_size() { return fp_in_pointers_.size(); }
+
+int WinGui::Context::get_int_in_buffer_size() { return int_in_pointers_.size(); }
 
 
 unsigned short WinGui::Context::get_new_rb_id() {
@@ -114,4 +126,11 @@ WinGui::Input<float> *WinGui::Context::get_fp_in_pointer(int index) {
 		return nullptr;
 
 	return fp_in_pointers_[index];
+}
+
+WinGui::Input<int> *WinGui::Context::get_int_in_pointer(int index) {
+	if (index >= int_in_pointers_.size())
+		return nullptr;
+
+	return int_in_pointers_[index];
 }

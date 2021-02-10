@@ -34,6 +34,7 @@ namespace WinGui {
 		static std::vector<CheckBox*> cb_pointers_;
 		static std::vector<Input<std::string>*> rt_pointers_;
 		static std::vector<Input<float>*> fp_in_pointers_;
+		static std::vector<Input<int>*> int_in_pointers_;
 		static byte rb_counter_;
 	
 	public:
@@ -42,12 +43,13 @@ namespace WinGui {
 		static bool register_gui_object(CheckBox *cb_pointer);
 		static bool register_gui_object(Input<std::string> *rt_pointer);
 		static bool register_gui_object(Input<float> *fp_in_pointer);
-		
+		static bool register_gui_object(Input<int> *int_in_pointer);
 		
 		static int get_btn_buffer_size();
 		static int get_cb_buffer_size();
 		static int get_rt_buffer_size();
 		static int get_fp_in_buffer_size();
+		static int get_int_in_buffer_size();
 		
 		static unsigned short get_new_rb_id();
 
@@ -57,6 +59,7 @@ namespace WinGui {
 		static CheckBox *get_cb_pointer(HWND handle);
 		static Input<std::string> *get_rt_pointer(int index);
 		static Input<float> *get_fp_in_pointer(int index);
+		static Input<int> *get_int_in_pointer(int index);
 		
 	};
 }
