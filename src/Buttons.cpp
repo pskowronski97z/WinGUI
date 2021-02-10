@@ -1,4 +1,6 @@
 #include <Buttons.h>
+#include <Context.h>
+#include <Window.h>
 
 WinGui::Button::Button(const Window &parent, const int &x, const int &y, std::string name)
 	: Control(parent, x, y, std::move(name)),

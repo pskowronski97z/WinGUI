@@ -29,7 +29,8 @@ namespace WinGui {
 	};
 	
 	// Functions >
-	std::wstring string_to_wstring(std::string source);
+	/*std::wstring string_to_wstring(std::string source);
+	std::string wchar_to_string(const wchar_t *text, const int &length);*/
 	// < Functions
 
 	// TODO: Zabezpieczenia + wyj¹tki

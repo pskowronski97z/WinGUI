@@ -1,9 +1,11 @@
 #pragma once
 #include <string>
-#include <Window.h>
-#include <Context.h>
+#include <Control.h>
 
 namespace WinGui {
+
+	class Window;
+	std::wstring string_to_wstring(std::string source);
 	
 	class Button : public Control {
 		friend class Window;
