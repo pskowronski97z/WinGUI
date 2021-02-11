@@ -32,6 +32,7 @@ LRESULT CALLBACK WinGui::Window::wnd_proc(HWND wnd_handle, UINT msg, WPARAM w_pa
 	Button *btn_pointer = nullptr;
 	Input<std::string> *rt_pointer = nullptr;
 	Input<float> *fp_in_pointer = nullptr;
+	Input<int> *int_in_pointer = nullptr;
 	unsigned short ctrl_class_id;
 	switch (msg) {
 	case WM_COMMAND:
@@ -67,7 +68,10 @@ LRESULT CALLBACK WinGui::Window::wnd_proc(HWND wnd_handle, UINT msg, WPARAM w_pa
 
 		switch (ctrl_class_id) {
 		case INT_INPUT:
-
+			if (HIWORD(w_param) == WM_MOUSEMOVE) {
+				int_in_pointer = Context::get_int_in_pointer(LOBYTE(w_param));
+				int_in_pointer->on_value_entered(l_param);
+			}
 			break;
 
 		case FLOAT_INPUT:

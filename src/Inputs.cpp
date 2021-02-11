@@ -3,7 +3,7 @@
 #include <iostream>
 #include <Window.h>
 #include <CommCtrl.h>
-#include <wchar.h>
+#include <cwchar>
 
 void WinGui::Input<std::string>::on_text_entered(LPARAM l_param) {
 	int buffer_size = GetWindowTextLength((HWND)l_param);
@@ -28,6 +28,12 @@ WinGui::Input<std::string>::Input(const Window &parent,
 		y += FONT_HEIGHT;
 	}*/
 
+
+	if(!name.empty()) {
+		Label name_label(parent,x_,y_,name);
+		y_ += FONT_HEIGHT;
+	}
+	
 	DWORD dw_style = WS_CHILD | WS_VISIBLE | ES_MULTILINE;
 
 	if (v_scroll)
@@ -62,6 +68,8 @@ WinGui::Input<std::string>::Input(const Window &parent,
 std::string WinGui::Input<std::string>::get_text() const { return text_; }
 
 
+
+
 void WinGui::Input<float>::on_value_entered(LPARAM l_param) {
 	int buffer_size = GetWindowTextLength((HWND)l_param);
 	std::wstring buffer;
@@ -72,13 +80,14 @@ void WinGui::Input<float>::on_value_entered(LPARAM l_param) {
 	value_ = std::stof(buffer_2);
 }
 
-const wchar_t *WinGui::Input<float>::format_float_input(const wchar_t *source, int length) {
+const wchar_t *WinGui::Input<float>::format_float_input(const wchar_t *source) {
 
 	wchar_t *padding_buffer;
 	wchar_t *result;
 	int no_minus_str_len = 0;
 	int itr_1 = 0;
 	int itr_2 = 0;
+	int source_len = wcslen(source) + 1;
 	bool was_separator = false;
 	bool is_negative = false;
 	bool only_zeros = true;
@@ -88,7 +97,7 @@ const wchar_t *WinGui::Input<float>::format_float_input(const wchar_t *source, i
 
 	// 1.1.2 Throw out minuses and raise a flag if there are any of them
 
-	for (int i = 0; i < length; i++) {
+	for (int i = 0; i < source_len; i++) {
 		if (source[i] == L'-') {
 			is_negative = true;
 			continue;
@@ -203,7 +212,7 @@ const wchar_t *WinGui::Input<float>::format_float_input(const wchar_t *source, i
 	return result;
 }
 
-LRESULT CALLBACK WinGui::Input<float>::input_proc(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param) {
+LRESULT CALLBACK WinGui::Input<float>::float_input_proc(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param) {
 	int buffer_length;
 	wchar_t *buffer;
 	const wchar_t *format_buffer;
@@ -217,7 +226,7 @@ LRESULT CALLBACK WinGui::Input<float>::input_proc(HWND window_handle, UINT messa
 		buffer = new wchar_t[buffer_length + 1];
 		GetWindowText(window_handle, (LPWSTR)buffer, buffer_length + 1);
 
-		format_buffer = format_float_input(buffer, buffer_length + 1);
+		format_buffer = format_float_input(buffer);
 
 		if (format_buffer != nullptr)
 			SendMessage(window_handle,WM_SETTEXT, 0, (LPARAM)format_buffer);
@@ -230,14 +239,19 @@ LRESULT CALLBACK WinGui::Input<float>::input_proc(HWND window_handle, UINT messa
 	}
 
 	return CallWindowProc(std_edit_proc_, window_handle, message, w_param, l_param);
-
 }
 
 WNDPROC WinGui::Input<float>::std_edit_proc_ = nullptr;
+WNDPROC WinGui::Input<int>::std_edit_proc_ = nullptr;
 
 WinGui::Input<float>::Input(const Window &parent, const std::string &name, const int &x, const int &y, const int &width)
 	: Control(parent, x, y, name), width_(width), value_(0.0f) {
 
+	if(!name.empty()) {
+		Label name_label(parent,x_,y_,name);
+		y_ += FONT_HEIGHT;
+	}
+	
 	id_ = FLOAT_INPUT | Context::get_fp_in_buffer_size();
 
 	handle_ = CreateWindowExW(
@@ -258,7 +272,7 @@ WinGui::Input<float>::Input(const Window &parent, const std::string &name, const
 	SendMessage(handle_,WM_SETTEXT, 0, (LPARAM)L"0.0");
 
 	if (std_edit_proc_ == nullptr)
-		std_edit_proc_ = (WNDPROC)SetWindowLongPtr(handle_,GWLP_WNDPROC, (LONG_PTR)input_proc);
+		std_edit_proc_ = (WNDPROC)SetWindowLongPtr(handle_,GWLP_WNDPROC, (LONG_PTR)float_input_proc);
 
 	Context::register_gui_object(this);
 }
@@ -266,7 +280,9 @@ WinGui::Input<float>::Input(const Window &parent, const std::string &name, const
 float WinGui::Input<float>::get_value() const { return value_; }
 
 
-WinGui::Input<int>::Input(const Window &parent, const std::string &name, const int &x, const int &y, const int &width)
+
+
+WinGui::Input<int>::Input(const Window &parent, const std::string &name, const int &x, const int &y, const int &width, const int &min, const int &max)
 	: Control(parent, x, y, name), width_(width), value_(0) {
 
 	id_ = INT_INPUT | Context::get_int_in_buffer_size();
@@ -275,7 +291,7 @@ WinGui::Input<int>::Input(const Window &parent, const std::string &name, const i
 		WS_EX_CLIENTEDGE,
 		L"EDIT",
 		nullptr,
-		WS_CHILD | WS_VISIBLE | ES_NUMBER | ES_LEFT,
+		WS_CHILD | WS_VISIBLE | ES_LEFT,
 		x_,
 		y_,
 		width_,
@@ -301,12 +317,99 @@ WinGui::Input<int>::Input(const Window &parent, const std::string &name, const i
 		GetModuleHandle(nullptr),
 		nullptr);
 
-	SendMessage(ud_control_handle,UDM_SETRANGE, 0,MAKELPARAM(100, -100));
+	SendMessage(ud_control_handle,UDM_SETRANGE, 0, MAKELPARAM(max, min));
+	if (std_edit_proc_ == nullptr)
+		std_edit_proc_ = (WNDPROC)SetWindowLongPtr(handle_,GWLP_WNDPROC, (LONG_PTR)int_input_proc);
 
-
+	
 	Context::register_gui_object(this);
 }
 
 float WinGui::Input<int>::get_value() const { return value_; }
 
-void WinGui::Input<int>::on_value_entered(LPARAM l_param) { }
+void WinGui::Input<int>::on_value_entered(LPARAM l_param) {
+
+	int buffer_size = GetWindowTextLength((HWND)l_param);
+	std::wstring buffer;
+	std::string buffer_2;
+	buffer.resize(buffer_size);
+	GetWindowText((HWND)l_param, (LPWSTR)buffer.c_str(), buffer_size + 1);
+	buffer_2 = wchar_to_string(buffer.c_str(), buffer_size);
+	value_ = std::stoi(buffer_2);
+
+}
+
+LRESULT WinGui::Input<int>::int_input_proc(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param) {
+
+	int buffer_length;
+	wchar_t *buffer;
+	const wchar_t *format_buffer;
+	switch (message) {
+	case WM_CHAR:
+		if (((w_param < '0') || (w_param > '9')) && (w_param != '-') && (w_param != 8))
+			return 0;
+		break;
+	case WM_KILLFOCUS:
+		buffer_length = GetWindowTextLength(window_handle);
+		buffer = new wchar_t[buffer_length + 1];
+		GetWindowText(window_handle, (LPWSTR)buffer, buffer_length + 1);
+
+		format_buffer = format_int_input(buffer);
+
+		if (format_buffer != nullptr)
+			SendMessage(window_handle,WM_SETTEXT, 0, (LPARAM)format_buffer);
+		
+		delete [] buffer;
+		delete [] format_buffer;
+
+		break;
+	default:
+		break;
+	}
+
+	return CallWindowProc(std_edit_proc_, window_handle, message, w_param, l_param);
+}
+
+const wchar_t *WinGui::Input<int>::format_int_input(const wchar_t *source) {
+
+	std::wstring w_str_source(source);
+	std::wstring w_str_result;
+	bool was_minus = false;
+	bool first_non_zero = false;
+	wchar_t *result;
+
+	for (auto &wch : w_str_source) {
+		if (wch == L'-') {
+			was_minus = true;
+			continue;
+		}
+
+		if ((wch >= L'1') && (wch <= L'9'))
+			first_non_zero = true;
+
+		if (first_non_zero)
+			w_str_result += wch;
+	}
+
+	if (!first_non_zero) {
+		result = new wchar_t[2];
+		result[0] = L'0';
+		result[1] = L'\0';
+		return result;
+	}
+
+
+	if (was_minus) {
+		w_str_source.clear();
+		w_str_source = L"-" + w_str_result;
+		w_str_result.clear();
+		w_str_result = w_str_source;
+	}
+
+	result = new wchar_t[w_str_result.size() + 1];
+
+	memcpy(result, w_str_result.c_str(), (w_str_result.size() + 1) * sizeof(wchar_t));
+
+	return result;
+	
+}
