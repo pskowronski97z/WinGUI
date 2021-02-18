@@ -3,7 +3,7 @@
 #include <Windows.h>
 #include <iostream>
 
-namespace WinGui {
+namespace WinGUI {
 
 	enum class Cursor {
 		ARROW = 32512,
@@ -38,6 +38,7 @@ namespace WinGui {
 	private:
 		std::string title_;
 		HWND wnd_handle_;
+		HWND parent_wnd_handle_;
 		WNDCLASS wnd_class_;
 		HINSTANCE instance_;
 		DWORD wnd_style_;
@@ -48,6 +49,8 @@ namespace WinGui {
 	
 	public:
 		Window(std::string title, int width, int height);
+		Window(Window &parent, int x, int y, int width, int height);
+		Window(HWND parent_handle, HINSTANCE instance, int x, int y, int width, int height);
 		void show_window() const;
 		void hide_window() const;
 		HWND get_handle() const;

@@ -1,16 +1,17 @@
 #include <Context.h>
 #include <Buttons.h>
 
-std::vector<WinGui::Window*> WinGui::Context::wnd_pointers_(0);
-std::vector<WinGui::ClickButton*> WinGui::Context::btn_pointers_(0);
-std::vector<WinGui::CheckBox*> WinGui::Context::cb_pointers_(0);
-std::vector<WinGui::Input<std::string>*> WinGui::Context::rt_pointers_(0);
-std::vector<WinGui::Input<float>*> WinGui::Context::fp_in_pointers_(0);
-std::vector<WinGui::Input<int>*> WinGui::Context::int_in_pointers_(0);
-byte WinGui::Context::rb_counter_ = 0;
+std::vector<WinGUI::Window*> WinGUI::Context::wnd_pointers_(0);
+std::vector<WinGUI::ClickButton*> WinGUI::Context::btn_pointers_(0);
+std::vector<WinGUI::CheckBox*> WinGUI::Context::cb_pointers_(0);
+std::vector<WinGUI::Input<std::string>*> WinGUI::Context::rt_pointers_(0);
+std::vector<WinGUI::Input<float>*> WinGUI::Context::fp_in_pointers_(0);
+std::vector<WinGUI::Input<int>*> WinGUI::Context::int_in_pointers_(0);
+std::vector<WinGUI::TabsContainer*> WinGUI::Context::tab_container_pointers(0);
+byte WinGUI::Context::rb_counter_ = 1;
 
 
-bool WinGui::Context::register_gui_object(Window *wnd_pointer) {
+bool WinGUI::Context::register_gui_object(Window *wnd_pointer) {
 	if (wnd_pointer == nullptr)
 		return false;
 
@@ -18,7 +19,7 @@ bool WinGui::Context::register_gui_object(Window *wnd_pointer) {
 	return true;
 }
 
-bool WinGui::Context::register_gui_object(ClickButton *btn_pointer) {
+bool WinGUI::Context::register_gui_object(ClickButton *btn_pointer) {
 	if (btn_pointer == nullptr)
 		return false;
 
@@ -26,7 +27,7 @@ bool WinGui::Context::register_gui_object(ClickButton *btn_pointer) {
 	return true;
 }
 
-bool WinGui::Context::register_gui_object(CheckBox *cb_pointer) {
+bool WinGUI::Context::register_gui_object(CheckBox *cb_pointer) {
 	if (cb_pointer == nullptr)
 		return false;
 
@@ -34,7 +35,7 @@ bool WinGui::Context::register_gui_object(CheckBox *cb_pointer) {
 	return true;
 }
 
-bool WinGui::Context::register_gui_object(Input<std::string> *rt_pointer) {
+bool WinGUI::Context::register_gui_object(Input<std::string> *rt_pointer) {
 	if (rt_pointer == nullptr)
 		return false;
 
@@ -42,7 +43,7 @@ bool WinGui::Context::register_gui_object(Input<std::string> *rt_pointer) {
 	return true;
 }
 
-bool WinGui::Context::register_gui_object(Input<float> *fp_in_pointer) {
+bool WinGUI::Context::register_gui_object(Input<float> *fp_in_pointer) {
 	if (fp_in_pointer == nullptr)
 		return false;
 
@@ -50,7 +51,7 @@ bool WinGui::Context::register_gui_object(Input<float> *fp_in_pointer) {
 	return true;
 }
 
-bool WinGui::Context::register_gui_object(Input<int> *int_in_pointer) {
+bool WinGUI::Context::register_gui_object(Input<int> *int_in_pointer) {
 	if (int_in_pointer == nullptr)
 		return false;
 
@@ -58,20 +59,28 @@ bool WinGui::Context::register_gui_object(Input<int> *int_in_pointer) {
 	return true;
 }
 
+bool WinGUI::Context::register_gui_object(TabsContainer *tab_container_pointer) {
+	if (tab_container_pointer == nullptr)
+		return false;
+
+	tab_container_pointers.emplace_back(tab_container_pointer);
+	return true;
+}
+
+int WinGUI::Context::get_btn_buffer_size() { return btn_pointers_.size(); }
+
+int WinGUI::Context::get_cb_buffer_size() { return cb_pointers_.size(); }
+
+int WinGUI::Context::get_rt_buffer_size() { return rt_pointers_.size(); }
+
+int WinGUI::Context::get_fp_in_buffer_size() { return fp_in_pointers_.size(); }
+
+int WinGUI::Context::get_int_in_buffer_size() { return int_in_pointers_.size(); }
+
+int WinGUI::Context::get_tab_cont_buffer_size() { return tab_container_pointers.size(); }
 
 
-int WinGui::Context::get_btn_buffer_size() { return btn_pointers_.size(); }
-
-int WinGui::Context::get_cb_buffer_size() { return cb_pointers_.size(); }
-
-int WinGui::Context::get_rt_buffer_size() { return rt_pointers_.size(); }
-
-int WinGui::Context::get_fp_in_buffer_size() { return fp_in_pointers_.size(); }
-
-int WinGui::Context::get_int_in_buffer_size() { return int_in_pointers_.size(); }
-
-
-unsigned short WinGui::Context::get_new_rb_id() {
+unsigned short WinGUI::Context::get_new_rb_id() {
 
 	//if(radio_button_counter_ == 255)
 	//exc
@@ -83,14 +92,14 @@ unsigned short WinGui::Context::get_new_rb_id() {
 }
 
 
-WinGui::ClickButton *WinGui::Context::get_btn_pointer(int index) {
+WinGUI::ClickButton *WinGUI::Context::get_btn_pointer(int index) {
 	if (index >= btn_pointers_.size())
 		return nullptr;
 
 	return btn_pointers_[index];
 }
 
-WinGui::ClickButton *WinGui::Context::get_btn_pointer(HWND handle) {
+WinGUI::ClickButton *WinGUI::Context::get_btn_pointer(HWND handle) {
 
 	for (auto &button : btn_pointers_)
 		if (button->get_handle() == handle)
@@ -99,14 +108,14 @@ WinGui::ClickButton *WinGui::Context::get_btn_pointer(HWND handle) {
 	return nullptr;
 }
 
-WinGui::CheckBox *WinGui::Context::get_cb_pointer(int index) {
+WinGUI::CheckBox *WinGUI::Context::get_cb_pointer(int index) {
 	if (index >= cb_pointers_.size())
 		return nullptr;
 
 	return cb_pointers_[index];
 }
 
-WinGui::CheckBox *WinGui::Context::get_cb_pointer(HWND handle) {
+WinGUI::CheckBox *WinGUI::Context::get_cb_pointer(HWND handle) {
 	for (auto &check_box : cb_pointers_)
 		if (check_box->get_handle() == handle)
 			return check_box;
@@ -114,23 +123,30 @@ WinGui::CheckBox *WinGui::Context::get_cb_pointer(HWND handle) {
 	return nullptr;
 }
 
-WinGui::Input<std::string> *WinGui::Context::get_rt_pointer(int index) {
+WinGUI::Input<std::string> *WinGUI::Context::get_rt_pointer(int index) {
 	if (index >= rt_pointers_.size())
 		return nullptr;
 
 	return rt_pointers_[index];
 }
 
-WinGui::Input<float> *WinGui::Context::get_fp_in_pointer(int index) {
+WinGUI::Input<float> *WinGUI::Context::get_fp_in_pointer(int index) {
 	if (index >= fp_in_pointers_.size())
 		return nullptr;
 
 	return fp_in_pointers_[index];
 }
 
-WinGui::Input<int> *WinGui::Context::get_int_in_pointer(int index) {
+WinGUI::Input<int> *WinGUI::Context::get_int_in_pointer(int index) {
 	if (index >= int_in_pointers_.size())
 		return nullptr;
 
 	return int_in_pointers_[index];
+}
+
+WinGUI::TabsContainer *WinGUI::Context::get_tab_cont_pointer(HWND handle) {
+	for(auto &tab_container_pointer : tab_container_pointers)
+		if(tab_container_pointer->get_handle() == handle)
+			return tab_container_pointer;
+	return nullptr;
 }

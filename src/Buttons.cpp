@@ -1,22 +1,23 @@
 #include <Buttons.h>
+#include <CommCtrl.h>
 #include <Context.h>
 #include <Window.h>
 
-WinGui::Button::Button(const Window &parent, const int &x, const int &y, std::string name)
+WinGUI::Button::Button(const Window &parent, const int &x, const int &y, std::string name)
 	: Control(parent, x, y, std::move(name)),
 	  state_(false),
 	  is_focus_set_(false) {}
 
-void WinGui::Button::on_click()
+void WinGUI::Button::on_click()
 {
 }
 
-void WinGui::Button::on_focus_set() { is_focus_set_ = true; }
+void WinGUI::Button::on_focus_set() { is_focus_set_ = true; }
 
-void WinGui::Button::on_focus_lost() { is_focus_set_ = false; }
+void WinGUI::Button::on_focus_lost() { is_focus_set_ = false; }
 
 
-WinGui::ClickButton::ClickButton(const Window &parent, std::string name, const int &x, const int &y, const int &width, const int &height)
+WinGUI::ClickButton::ClickButton(const Window &parent, std::string name, const int &x, const int &y, const int &width, const int &height)
 	: Button(parent, x, y, std::move(name)),
 	  width_(width),
 	  height_(height) {
@@ -49,9 +50,9 @@ WinGui::ClickButton::ClickButton(const Window &parent, std::string name, const i
 
 }
 
-void WinGui::ClickButton::on_click() { state_ = true; }
+void WinGUI::ClickButton::on_click() { state_ = true; }
 
-bool WinGui::ClickButton::was_clicked() {
+bool WinGUI::ClickButton::was_clicked() {
 	if (state_) {
 		state_ = false;
 		return true;
@@ -59,10 +60,10 @@ bool WinGui::ClickButton::was_clicked() {
 	return false;
 }
 
-bool WinGui::ClickButton::is_focused() const { return is_focus_set_; }
+bool WinGUI::ClickButton::is_focused() const { return is_focus_set_; }
 
 
-WinGui::CheckBox::CheckBox(const Window &parent, std::string name, const int &x, const int &y) : Button(parent, x, y, std::move(name)) {
+WinGUI::CheckBox::CheckBox(const Window &parent, std::string name, const int &x, const int &y) : Button(parent, x, y, std::move(name)) {
 
 	id_ = Context::get_cb_buffer_size();
 
@@ -91,7 +92,7 @@ WinGui::CheckBox::CheckBox(const Window &parent, std::string name, const int &x,
 	Context::register_gui_object(this);
 }
 
-void WinGui::CheckBox::on_click() {
+void WinGUI::CheckBox::on_click() {
 	state_ = !state_;
 
 	if (state_)
@@ -100,10 +101,10 @@ void WinGui::CheckBox::on_click() {
 		CheckDlgButton(parent_handle_, id_,BST_UNCHECKED);
 }
 
-bool WinGui::CheckBox::is_checked() const { return state_; }
+bool WinGUI::CheckBox::is_checked() const { return state_; }
 
 
-WinGui::RadioButton::RadioButton(const Window &parent, std::string name, const int &x, const int &y, bool new_group) :
+WinGUI::RadioButton::RadioButton(const Window &parent, std::string name, const int &x, const int &y, bool new_group) :
 	Control(parent, x, y, std::move(name)) {
 
 	std::wstring rb_w_label = string_to_wstring(name_);
@@ -131,9 +132,77 @@ WinGui::RadioButton::RadioButton(const Window &parent, std::string name, const i
 	SendMessage(handle_, WM_SETFONT, (WPARAM)((HFONT)GetStockObject(DEFAULT_GUI_FONT)), MAKELPARAM(TRUE, 0));
 }
 
-bool WinGui::RadioButton::is_checked() const {
+bool WinGUI::RadioButton::is_checked() const {
 	UINT result = IsDlgButtonChecked(parent_handle_,id_);
 	if(result == BST_CHECKED)
 		return true;
 	return false;
 }
+
+
+void WinGUI::TabsContainer::show_distinct(int index) {
+
+	for(auto &tab : tabs_)
+		tab->hide_window();
+
+	tabs_[index]->show_window();
+	
+}
+
+WinGUI::TabsContainer::TabsContainer(const Window &parent, const int &x, const int &y, const int &width, const int &height)
+	: Control(parent, x, y, ""), width_(width), height_(height), container_x_(x_ + 1), container_y_(y + 21),
+	  container_width_(width_ - 4), container_height_(height_ - 23) {
+
+	handle_ = CreateWindowEx(
+		0,
+		WC_TABCONTROL,
+		0,
+		WS_CHILD | WS_VISIBLE ,
+		x_,
+		y_,
+		width_,
+		height_,
+		parent_handle_,
+		(HMENU)TABS_CONTAINER,
+		parent.get_instance(),
+		nullptr);
+
+	SendMessage(handle_, WM_SETFONT, (WPARAM)((HFONT)GetStockObject(DEFAULT_GUI_FONT)), MAKELPARAM(TRUE, 0));
+
+	Context::register_gui_object(this);
+}
+
+WinGUI::Window * WinGUI::TabsContainer::add_tab(std::string name) {
+
+
+	Window *result = new Window(parent_handle_, GetModuleHandle(nullptr), container_x_, container_y_, container_width_,container_height_);
+	
+	std::wstring tab_w_name = string_to_wstring(name);
+	wchar_t *text = new wchar_t[tab_w_name.size() + 1];
+
+	int i = 0;
+
+	for (auto &wchar : tab_w_name) {
+		text[i] = wchar;
+		i++;
+	}
+
+	text[i] = L'\0';
+	TCITEM tcitem;
+	tcitem.mask = TCIF_TEXT;
+	tcitem.pszText = text;
+	tcitem.cchTextMax = tab_w_name.size();
+	TabCtrl_InsertItem(handle_, tabs_.size(), &tcitem);
+	tabs_.emplace_back(result);
+	delete [] text;
+	return result;
+	
+}
+
+int WinGUI::TabsContainer::get_container_x() const { return container_x_; }
+
+int WinGUI::TabsContainer::get_container_y() const { return container_y_; }
+
+int WinGUI::TabsContainer::get_container_width() const { return container_width_; }
+
+int WinGUI::TabsContainer::get_container_height() const { return container_height_; }

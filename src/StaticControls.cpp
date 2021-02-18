@@ -1,10 +1,13 @@
 #include <StaticControls.h>
 #include <CommCtrl.h>
+#include <Window.h>
 
-WinGui::Label::Label(const Window& parent, const int& x, const int& y, std::string name) : Control(parent, x, y, name) {
+
+
+WinGUI::Label::Label(const Window& parent, const int& x, const int& y, std::string name) : Control(parent, x, y, name) {
 
 	std::wstring w_name = string_to_wstring(name_);
-	id_= 0;
+	id_= STATIC_CTRL;
 	width_ = w_name.size() * 6;
 	handle_ = CreateWindowExW(
 		0,
@@ -16,27 +19,29 @@ WinGui::Label::Label(const Window& parent, const int& x, const int& y, std::stri
 		width_,
 		FONT_HEIGHT,
 		parent_handle_,
-		(HMENU)nullptr,
-		GetModuleHandle(nullptr),
+		(HMENU)id_,
+		parent.get_instance(),
 		0);
 
 	SendMessage(handle_, WM_SETFONT, (WPARAM)(HFONT)GetStockObject(DEFAULT_GUI_FONT), MAKELPARAM(TRUE, 0));
 	
 }
 
-void WinGui::Label::set_name(std::string name) {
+void WinGUI::Label::set_name(std::string name) {
 	name_ = name;
 	std::wstring w_name = string_to_wstring(name_);
 	SetWindowText(handle_,w_name.c_str());
 	width_ = w_name.size()*6;
 }
 
-int WinGui::Label::get_width() const { return width_; }
+int WinGUI::Label::get_width() const { return width_; }
 
-WinGui::ProgressBar::ProgressBar(const Window& parent, const int& x, const int& y, const int& width, const int& height, std::string name)
+
+
+WinGUI::ProgressBar::ProgressBar(const Window& parent, const int& x, const int& y, const int& width, const int& height, std::string name)
 	: Control(parent,x,y,name),width_(width),height_(height),progress_(0.0f) {
 
-	id_ = 0;
+	id_ = STATIC_CTRL;
 
 	if(!name.empty()) {
 		Label name_label(parent,x_,y_,name);
@@ -53,18 +58,18 @@ WinGui::ProgressBar::ProgressBar(const Window& parent, const int& x, const int& 
 		width_,
 		height_,
 		parent_handle_,
-		(HMENU)0, 
-		GetModuleHandle(nullptr), 
+		(HMENU)id_, 
+		parent.get_instance(), 
 		0);
 }
 
-int WinGui::ProgressBar::get_width() const { return width_; }
+int WinGUI::ProgressBar::get_width() const { return width_; }
 
-int WinGui::ProgressBar::get_height() const { return height_; }
+int WinGUI::ProgressBar::get_height() const { return height_; }
 
-float WinGui::ProgressBar::get_progress() const { return progress_; }
+float WinGUI::ProgressBar::get_progress() const { return progress_; }
 
-bool WinGui::ProgressBar::set_progress(unsigned short progress) {
+bool WinGUI::ProgressBar::set_progress(unsigned short progress) {
 
 	if(progress<0 || progress>100)
 		return false;
@@ -73,3 +78,31 @@ bool WinGui::ProgressBar::set_progress(unsigned short progress) {
 
 	return true;
 }
+
+
+
+WinGUI::GroupBox::GroupBox(const Window& parent, const int& x, const int& y, const int& width, const int& height, std::string name)
+	: Control(parent, x, y, name), width_(width), height_(height) {
+
+	std::wstring w_name = string_to_wstring(name_);
+	id_ = STATIC_CTRL;
+	handle_ = CreateWindowExW(
+			0,
+			L"BUTTON",
+			w_name.c_str(),
+			WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_GROUPBOX,
+			x_,
+			y_,
+			width_,
+			height_,
+			parent_handle_,
+			(HMENU)id_,
+			parent.get_instance(),
+			nullptr);
+
+	SendMessage(handle_, WM_SETFONT, (WPARAM)((HFONT)GetStockObject(DEFAULT_GUI_FONT)), MAKELPARAM(TRUE, 0));
+}
+
+int WinGUI::GroupBox::get_width() const { return width_; }
+
+int WinGUI::GroupBox::get_height() const { return height_; }

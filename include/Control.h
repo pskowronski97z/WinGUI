@@ -2,7 +2,7 @@
 #include <string>
 #include <Windows.h>
 
-namespace WinGui {
+namespace WinGUI {
 
 	class Window;
 	

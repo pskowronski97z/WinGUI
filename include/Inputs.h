@@ -2,7 +2,7 @@
 #include <Control.h>
 #include <StaticControls.h>
 
-namespace WinGui {
+namespace WinGUI {
 
 	// Allowed types: string, float, int
 	template <typename T> class Input;

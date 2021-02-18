@@ -1,8 +1,9 @@
 #pragma once
 #include <Control.h>
 #define FONT_HEIGHT 16
+#define STATIC_CTRL 0xFF01
 
-namespace WinGui {
+namespace WinGUI {
 
 	//Defined in Window.cpp
 	std::wstring string_to_wstring(std::string source);
@@ -29,5 +30,14 @@ namespace WinGui {
 		float get_progress() const;
 		bool set_progress(unsigned short progress);
 	};
-	
+
+	class GroupBox : public Control {
+	private:
+		int width_;
+		int height_;
+	public:
+		GroupBox(const Window &parent, const int &x, const int &y, const int &width, const int &height, std::string name);
+		int get_width() const;
+		int get_height() const;
+	};
 }

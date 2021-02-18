@@ -1,8 +1,10 @@
 #pragma once
 #include <string>
 #include <Control.h>
+#include <vector>
 
-namespace WinGui {
+
+namespace WinGUI {
 
 	class Window;
 	std::wstring string_to_wstring(std::string source);
@@ -47,5 +49,27 @@ namespace WinGui {
 	public:
 		RadioButton(const Window &parent, std::string name, const int &x, const int &y, bool new_group);
 		bool is_checked() const;
+	};
+
+	class TabsContainer : public Control {
+		friend class Window;
+	private:
+		int width_;
+		int height_;
+		int container_x_;
+		int container_y_;
+		int container_width_;
+		int container_height_;
+		std::vector<Window*> tabs_;
+		void show_distinct(int index);
+	
+	public:
+		TabsContainer(const Window &parent, const int &x, const int &y, const int &width, const int &height);
+		Window *add_tab(std::string name);
+		int get_container_x() const;
+		int get_container_y() const;
+		int get_container_width() const;
+		int get_container_height() const;
+		
 	};
 }

@@ -2,11 +2,13 @@
 #include <Context.h>
 #include <iostream>
 #include <Buttons.h>
+#include <CommCtrl.h>
 #include <Inputs.h>
 
 #define DEFAULT_WND_CLASS L"default_wnd_class"
+#define CONTENT_CONTAINER L"content_container"
 
-std::wstring WinGui::string_to_wstring(std::string source) {
+std::wstring WinGUI::string_to_wstring(std::string source) {
 	std::wstring result;
 
 	for (auto &ch : source)
@@ -14,7 +16,7 @@ std::wstring WinGui::string_to_wstring(std::string source) {
 	return result;
 }
 
-std::string WinGui::wchar_to_string(const wchar_t *text, const int &length) {
+std::string WinGUI::wchar_to_string(const wchar_t *text, const int &length) {
 
 	std::string result;
 	char char_buffer;
@@ -27,13 +29,16 @@ std::string WinGui::wchar_to_string(const wchar_t *text, const int &length) {
 	return result;
 }
 
-LRESULT CALLBACK WinGui::Window::wnd_proc(HWND wnd_handle, UINT msg, WPARAM w_param, LPARAM l_param) {
+LRESULT CALLBACK WinGUI::Window::wnd_proc(HWND wnd_handle, UINT msg, WPARAM w_param, LPARAM l_param) {
 
 	Button *btn_pointer = nullptr;
 	Input<std::string> *rt_pointer = nullptr;
 	Input<float> *fp_in_pointer = nullptr;
 	Input<int> *int_in_pointer = nullptr;
+	TabsContainer *tabs_cont_pointer = nullptr;
 	unsigned short ctrl_class_id;
+	int index = 0;
+	LPNMHDR id = 0;
 	switch (msg) {
 	case WM_COMMAND:
 
@@ -89,7 +94,16 @@ LRESULT CALLBACK WinGui::Window::wnd_proc(HWND wnd_handle, UINT msg, WPARAM w_pa
 			break;
 		}
 	case WM_NOTIFY:
-
+		if (w_param != TABS_CONTAINER)
+			break;
+		id = (LPNMHDR)l_param;
+		if (id->code != TCN_SELCHANGE)
+			break;
+		tabs_cont_pointer = Context::get_tab_cont_pointer(id->hwndFrom);
+		if (tabs_cont_pointer == nullptr)
+			break;
+		index = TabCtrl_GetCurSel(tabs_cont_pointer->get_handle());
+		tabs_cont_pointer->show_distinct(index);
 		break;
 
 	case WM_CLOSE:
@@ -102,7 +116,7 @@ LRESULT CALLBACK WinGui::Window::wnd_proc(HWND wnd_handle, UINT msg, WPARAM w_pa
 	return DefWindowProc(wnd_handle, msg, w_param, l_param);
 }
 
-WinGui::Window::Window(std::string title, int width, int height) : title_(title), width_(width), height_(height) {
+WinGUI::Window::Window(std::string title, int width, int height) : title_(title), width_(width), height_(height), parent_wnd_handle_(nullptr) {
 
 	instance_ = GetModuleHandle(nullptr);
 
@@ -111,7 +125,7 @@ WinGui::Window::Window(std::string title, int width, int height) : title_(title)
 	wnd_class_.hInstance = instance_;
 	wnd_class_.hCursor = nullptr;
 	wnd_class_.hIcon = nullptr;
-	wnd_class_.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
+	wnd_class_.hbrBackground = (HBRUSH)(COLOR_BTNSHADOW + 1);
 	wnd_class_.lpszMenuName = nullptr;
 	wnd_class_.style = 0;
 	wnd_class_.cbClsExtra = 0;
@@ -140,15 +154,77 @@ WinGui::Window::Window(std::string title, int width, int height) : title_(title)
 	Context::register_gui_object(this);
 }
 
-HWND WinGui::Window::get_handle() const { return wnd_handle_; }
+WinGUI::Window::Window(Window &parent, int x, int y, int width, int height)
+	: title_(""), width_(width), height_(height), instance_(parent.get_instance()), wnd_style_(WS_CHILD), parent_wnd_handle_(parent.get_handle()) {
 
-HINSTANCE WinGui::Window::get_instance() const { return instance_; }
+	wnd_class_.lpszClassName = L"content_container";
+	wnd_class_.lpfnWndProc = wnd_proc;
+	wnd_class_.hInstance = instance_;
+	wnd_class_.hCursor = nullptr;
+	wnd_class_.hIcon = nullptr;
+	wnd_class_.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
+	wnd_class_.lpszMenuName = nullptr;
+	wnd_class_.style = 0;
+	wnd_class_.cbClsExtra = 0;
+	wnd_class_.cbWndExtra = 1;
 
-int WinGui::Window::get_width() const { return width_; }
+	RegisterClass(&wnd_class_);
+	
+	wnd_handle_ = CreateWindow(
+		CONTENT_CONTAINER,
+		L"",
+		wnd_style_,
+		x,
+		y,
+		width_,
+		height_,
+		parent_wnd_handle_,
+		nullptr,
+		instance_,
+		nullptr);
 
-int WinGui::Window::get_height() const { return height_; }
+}
 
-bool WinGui::Window::set_icon(std::string file_path) const {
+WinGUI::Window::Window(HWND parent_handle, HINSTANCE instance, int x, int y, int width, int height) 
+	: title_(""), width_(width), height_(height), instance_(instance), wnd_style_(WS_CHILD), parent_wnd_handle_(parent_handle) {
+
+	wnd_class_.lpszClassName = L"content_container";
+	wnd_class_.lpfnWndProc = wnd_proc;
+	wnd_class_.hInstance = instance_;
+	wnd_class_.hCursor = nullptr;
+	wnd_class_.hIcon = nullptr;
+	wnd_class_.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
+	wnd_class_.lpszMenuName = nullptr;
+	wnd_class_.style = 0;
+	wnd_class_.cbClsExtra = 0;
+	wnd_class_.cbWndExtra = 1;
+
+	RegisterClass(&wnd_class_);
+	
+	wnd_handle_ = CreateWindow(
+		CONTENT_CONTAINER,
+		L"",
+		wnd_style_,
+		x,
+		y,
+		width_,
+		height_,
+		parent_wnd_handle_,
+		nullptr,
+		instance_,
+		nullptr);
+
+}
+
+HWND WinGUI::Window::get_handle() const { return wnd_handle_; }
+
+HINSTANCE WinGUI::Window::get_instance() const { return instance_; }
+
+int WinGUI::Window::get_width() const { return width_; }
+
+int WinGUI::Window::get_height() const { return height_; }
+
+bool WinGUI::Window::set_icon(std::string file_path) const {
 	std::wstring file_path_w = string_to_wstring(file_path);
 	HANDLE icon = LoadImage(
 		nullptr,
@@ -165,16 +241,16 @@ bool WinGui::Window::set_icon(std::string file_path) const {
 	return true;
 }
 
-void WinGui::Window::show_window() const { ShowWindow(wnd_handle_, SW_SHOW); }
+void WinGUI::Window::show_window() const { ShowWindow(wnd_handle_, SW_SHOW); }
 
-void WinGui::Window::hide_window() const { ShowWindow(wnd_handle_, SW_HIDE); }
+void WinGUI::Window::hide_window() const { ShowWindow(wnd_handle_, SW_HIDE); }
 
-void WinGui::Window::set_cursor(Cursor cursor_type) const {
+void WinGUI::Window::set_cursor(Cursor cursor_type) const {
 	HCURSOR cursor = LoadCursor(nullptr, MAKEINTRESOURCE(cursor_type));
 	SetClassLongPtr(wnd_handle_,GCLP_HCURSOR, (LONG_PTR)cursor);
 }
 
-void WinGui::Window::set_style(Style wnd_style) {
+void WinGUI::Window::set_style(Style wnd_style) {
 	wnd_style_ |= (DWORD)wnd_style;
 	SetWindowLongPtr(wnd_handle_,GWL_STYLE, (LONG_PTR)wnd_style_);
 }
