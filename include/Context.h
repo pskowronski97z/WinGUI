@@ -19,6 +19,7 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #define TABS_CONTAINER 0x0800
 #define COMBO_BOX 0x0900
 #define LIST_BOX 0x0A00
+#define TREE_VIEW 0x0B00
 #define DEFAULT 0xFF00
 
 
@@ -30,6 +31,7 @@ namespace WinGUI {
 	template<typename T>
 	class Input;
 	class TabsContainer;
+	class TreeView;
 	
 	class Context final {
 
@@ -41,6 +43,7 @@ namespace WinGUI {
 		static std::vector<Input<float>*> fp_in_pointers_;
 		static std::vector<Input<int>*> int_in_pointers_;
 		static std::vector<TabsContainer*> tab_container_pointers;
+		static std::vector<TreeView*> tv_pointers;
 		static byte rb_counter_;
 	
 	public:
@@ -51,6 +54,7 @@ namespace WinGUI {
 		static bool register_gui_object(Input<float> *fp_in_pointer);
 		static bool register_gui_object(Input<int> *int_in_pointer);
 		static bool register_gui_object(TabsContainer *tab_container_pointer);
+		static bool register_gui_object(TreeView *tv_pointer);
 		
 		static int get_btn_buffer_size();
 		static int get_cb_buffer_size();
@@ -69,6 +73,7 @@ namespace WinGUI {
 		static Input<float> *get_fp_in_pointer(int index);
 		static Input<int> *get_int_in_pointer(int index);
 		static TabsContainer *get_tab_cont_pointer(HWND handle);
+		static TreeView *get_tv_pointer(HWND handle);
 		
 	};
 }

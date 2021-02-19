@@ -1,6 +1,8 @@
 #include <Context.h>
 #include <Buttons.h>
 
+#include "Lists.h"
+
 std::vector<WinGUI::Window*> WinGUI::Context::wnd_pointers_(0);
 std::vector<WinGUI::ClickButton*> WinGUI::Context::btn_pointers_(0);
 std::vector<WinGUI::CheckBox*> WinGUI::Context::cb_pointers_(0);
@@ -8,6 +10,7 @@ std::vector<WinGUI::Input<std::string>*> WinGUI::Context::rt_pointers_(0);
 std::vector<WinGUI::Input<float>*> WinGUI::Context::fp_in_pointers_(0);
 std::vector<WinGUI::Input<int>*> WinGUI::Context::int_in_pointers_(0);
 std::vector<WinGUI::TabsContainer*> WinGUI::Context::tab_container_pointers(0);
+std::vector<WinGUI::TreeView*> WinGUI::Context::tv_pointers(0);
 byte WinGUI::Context::rb_counter_ = 1;
 
 
@@ -64,6 +67,14 @@ bool WinGUI::Context::register_gui_object(TabsContainer *tab_container_pointer) 
 		return false;
 
 	tab_container_pointers.emplace_back(tab_container_pointer);
+	return true;
+}
+
+bool WinGUI::Context::register_gui_object(TreeView* tv_pointer) {
+	if (tv_pointer == nullptr)
+		return false;
+
+	tv_pointers.emplace_back(tv_pointer);
 	return true;
 }
 
@@ -148,5 +159,12 @@ WinGUI::TabsContainer *WinGUI::Context::get_tab_cont_pointer(HWND handle) {
 	for(auto &tab_container_pointer : tab_container_pointers)
 		if(tab_container_pointer->get_handle() == handle)
 			return tab_container_pointer;
+	return nullptr;
+}
+
+WinGUI::TreeView* WinGUI::Context::get_tv_pointer(HWND handle) {
+	for(auto &tv : tv_pointers)
+		if(tv->get_handle() == handle)
+			return tv;
 	return nullptr;
 }

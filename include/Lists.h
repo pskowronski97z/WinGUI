@@ -1,6 +1,7 @@
 #pragma once
 #include <Control.h>
 #include <vector>
+#include <CommCtrl.h>
 
 namespace WinGUI {
 
@@ -49,7 +50,18 @@ namespace WinGUI {
 	};
 
 	class TreeView : public Control {
-
-		// TODO
+	private:
+		int width_;
+		int height_;
+		std::vector<TVITEM> items_;
+		int selected_item_;
+	
+	public:
+		TreeView(const Window &parent, const std::string &name, const int &x, const int &y, const int &width,  const int &height);
+		bool add_item(std::string item_name, int parent_index);
+		bool remove_item(int index);
+		bool clear();
+		int set_selected_item(HTREEITEM item_handle);
+		int get_selected_index() const;
 	};
 }

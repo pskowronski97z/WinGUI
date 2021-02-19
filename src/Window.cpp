@@ -4,6 +4,7 @@
 #include <Buttons.h>
 #include <CommCtrl.h>
 #include <Inputs.h>
+#include <Lists.h>
 
 #define DEFAULT_WND_CLASS L"default_wnd_class"
 #define CONTENT_CONTAINER L"content_container"
@@ -36,9 +37,13 @@ LRESULT CALLBACK WinGUI::Window::wnd_proc(HWND wnd_handle, UINT msg, WPARAM w_pa
 	Input<float> *fp_in_pointer = nullptr;
 	Input<int> *int_in_pointer = nullptr;
 	TabsContainer *tabs_cont_pointer = nullptr;
+	TreeView *tv_pointer = nullptr;
 	unsigned short ctrl_class_id;
 	int index = 0;
 	LPNMHDR id = 0;
+	LPNMTREEVIEW nmtv = 0;
+
+	
 	switch (msg) {
 	case WM_COMMAND:
 
@@ -94,16 +99,48 @@ LRESULT CALLBACK WinGUI::Window::wnd_proc(HWND wnd_handle, UINT msg, WPARAM w_pa
 			break;
 		}
 	case WM_NOTIFY:
-		if (w_param != TABS_CONTAINER)
-			break;
+
 		id = (LPNMHDR)l_param;
-		if (id->code != TCN_SELCHANGE)
+		
+		switch(w_param) {
+		case TABS_CONTAINER:
+			if (id->code != TCN_SELCHANGE)
+				break;
+			tabs_cont_pointer = Context::get_tab_cont_pointer(id->hwndFrom);
+			if (tabs_cont_pointer == nullptr)
+				break;
+			index = TabCtrl_GetCurSel(tabs_cont_pointer->get_handle());
+			tabs_cont_pointer->show_distinct(index);
+
 			break;
-		tabs_cont_pointer = Context::get_tab_cont_pointer(id->hwndFrom);
-		if (tabs_cont_pointer == nullptr)
+
+		case TREE_VIEW:
+
+			switch (id->code) {
+				case TVN_SELCHANGED:
+
+					nmtv = (LPNMTREEVIEW)l_param;
+					TVITEM new_it = nmtv->itemNew;
+					tv_pointer = Context::get_tv_pointer(id->hwndFrom);
+
+					if(tv_pointer == nullptr)	
+						break;
+
+					tv_pointer->set_selected_item(new_it.hItem);
+					break;
+				
+				case TVN_ENDLABELEDIT:
+					if (((LPNMTVDISPINFO)l_param)->item.pszText != 0)
+						return true;
+					return false;
+				}
+
 			break;
-		index = TabCtrl_GetCurSel(tabs_cont_pointer->get_handle());
-		tabs_cont_pointer->show_distinct(index);
+			
+		default: break;
+			
+		}
+		
 		break;
 
 	case WM_CLOSE:
