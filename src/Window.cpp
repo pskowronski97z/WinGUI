@@ -2,14 +2,17 @@
 #include <Context.h>
 #include <iostream>
 #include <Buttons.h>
+#include <cassert>
 #include <CommCtrl.h>
 #include <Inputs.h>
 #include <Lists.h>
+#include <Exceptions.h>
 
 #define DEFAULT_WND_CLASS L"default_wnd_class"
 #define CONTENT_CONTAINER L"content_container"
 
 std::wstring WinGUI::string_to_wstring(std::string source) {
+
 	std::wstring result;
 
 	for (auto &ch : source)
@@ -97,6 +100,7 @@ LRESULT CALLBACK WinGUI::Window::wnd_proc(HWND wnd_handle, UINT msg, WPARAM w_pa
 				rt_pointer->on_text_entered(l_param);
 			}
 			break;
+		default: break;
 		}
 	case WM_NOTIFY:
 
@@ -153,8 +157,23 @@ LRESULT CALLBACK WinGUI::Window::wnd_proc(HWND wnd_handle, UINT msg, WPARAM w_pa
 	return DefWindowProc(wnd_handle, msg, w_param, l_param);
 }
 
-WinGUI::Window::Window(std::string title, int width, int height) : title_(title), width_(width), height_(height), parent_wnd_handle_(nullptr) {
+WinGUI::Window::Window(std::string title, const int &width, const int &height) 
+	: title_(std::move(title)),
+	  parent_wnd_handle_(nullptr),
+	  wnd_class_(),
+	  width_(width),
+	  height_(height) {
 
+	if(title_.empty())
+		title_ = "Window 1";
+
+	if(width_ < 50)
+		width_ = 100;
+
+	if(height_ < 50)
+		height_ = 100;
+
+	
 	instance_ = GetModuleHandle(nullptr);
 
 	wnd_class_.lpszClassName = DEFAULT_WND_CLASS;
@@ -169,9 +188,11 @@ WinGUI::Window::Window(std::string title, int width, int height) : title_(title)
 	wnd_class_.cbWndExtra = 0;
 
 	RegisterClass(&wnd_class_);
+	
 
 	wnd_style_ = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU;
 
+	
 	std::wstring w_title = string_to_wstring(title_);
 
 	wnd_handle_ = CreateWindowExW(
@@ -181,19 +202,29 @@ WinGUI::Window::Window(std::string title, int width, int height) : title_(title)
 		wnd_style_,
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
-		abs(width_),
-		abs(height_),
+		width_,
+		height_,
 		nullptr,
 		nullptr,
 		instance_,
 		0);
 
-	Context::register_gui_object(this);
 }
 
-WinGUI::Window::Window(Window &parent, int x, int y, int width, int height)
-	: title_(""), width_(width), height_(height), instance_(parent.get_instance()), wnd_style_(WS_CHILD), parent_wnd_handle_(parent.get_handle()) {
+WinGUI::Window::Window(Window &parent, const int &x, const int &y, const int &width, const int &height) noexcept
+	: parent_wnd_handle_(parent.get_handle()),
+	  wnd_class_(),
+	  instance_(parent.get_instance()),
+	  wnd_style_(WS_CHILD),
+	  width_(width),
+	  height_(height) {
 
+	if(width_ < 50)
+		width_ = 100;
+
+	if(height_ < 50)
+		height_ = 100;
+	
 	wnd_class_.lpszClassName = L"content_container";
 	wnd_class_.lpfnWndProc = wnd_proc;
 	wnd_class_.hInstance = instance_;
@@ -222,9 +253,26 @@ WinGUI::Window::Window(Window &parent, int x, int y, int width, int height)
 
 }
 
-WinGUI::Window::Window(HWND parent_handle, HINSTANCE instance, int x, int y, int width, int height) 
-	: title_(""), width_(width), height_(height), instance_(instance), wnd_style_(WS_CHILD), parent_wnd_handle_(parent_handle) {
+WinGUI::Window::Window(const HWND &parent_handle, const HINSTANCE &instance, const int &x, const int &y, const int &width, const int &height)
+	: parent_wnd_handle_(parent_handle),
+	  wnd_class_(),
+	  instance_(instance),
+	  wnd_style_(WS_CHILD),
+	  width_(width),
+	  height_(height) {
 
+	if(parent_wnd_handle_ == nullptr)
+		throw WinGUI_InvalidArgumentException("Cannot construct a child window. Handle to the parent window is not defined.");
+
+	if(instance_ == nullptr)
+		throw WinGUI_InvalidArgumentException("Cannot construct a child window. Handle to program instance is not defined.");
+	
+	if(width_ < 50)
+		width_ = 100;
+
+	if(height_ < 50)
+		height_ = 100;
+	
 	wnd_class_.lpszClassName = L"content_container";
 	wnd_class_.lpfnWndProc = wnd_proc;
 	wnd_class_.hInstance = instance_;
@@ -237,6 +285,7 @@ WinGUI::Window::Window(HWND parent_handle, HINSTANCE instance, int x, int y, int
 	wnd_class_.cbWndExtra = 1;
 
 	RegisterClass(&wnd_class_);
+
 	
 	wnd_handle_ = CreateWindow(
 		CONTENT_CONTAINER,
@@ -253,16 +302,16 @@ WinGUI::Window::Window(HWND parent_handle, HINSTANCE instance, int x, int y, int
 
 }
 
-HWND WinGUI::Window::get_handle() const { return wnd_handle_; }
+HWND WinGUI::Window::get_handle() const noexcept { return wnd_handle_; }
 
-HINSTANCE WinGUI::Window::get_instance() const { return instance_; }
+HINSTANCE WinGUI::Window::get_instance() const noexcept { return instance_; }
 
-int WinGUI::Window::get_width() const { return width_; }
+int WinGUI::Window::get_width() const noexcept { return width_; }
 
-int WinGUI::Window::get_height() const { return height_; }
+int WinGUI::Window::get_height() const noexcept { return height_; }
 
 bool WinGUI::Window::set_icon(std::string file_path) const {
-	std::wstring file_path_w = string_to_wstring(file_path);
+	std::wstring file_path_w = string_to_wstring(std::move(file_path));
 	HANDLE icon = LoadImage(
 		nullptr,
 		file_path_w.c_str(),
@@ -278,16 +327,22 @@ bool WinGUI::Window::set_icon(std::string file_path) const {
 	return true;
 }
 
-void WinGUI::Window::show_window() const { ShowWindow(wnd_handle_, SW_SHOW); }
+void WinGUI::Window::show_window() const noexcept { ShowWindow(wnd_handle_, SW_SHOW); }
 
-void WinGUI::Window::hide_window() const { ShowWindow(wnd_handle_, SW_HIDE); }
+void WinGUI::Window::hide_window() const noexcept { ShowWindow(wnd_handle_, SW_HIDE); }
 
-void WinGUI::Window::set_cursor(Cursor cursor_type) const {
+void WinGUI::Window::set_cursor(Cursor cursor_type) const noexcept {
 	HCURSOR cursor = LoadCursor(nullptr, MAKEINTRESOURCE(cursor_type));
 	SetClassLongPtr(wnd_handle_,GCLP_HCURSOR, (LONG_PTR)cursor);
 }
 
-void WinGUI::Window::set_style(Style wnd_style) {
+void WinGUI::Window::set_style(Style wnd_style) noexcept {
 	wnd_style_ |= (DWORD)wnd_style;
 	SetWindowLongPtr(wnd_handle_,GWL_STYLE, (LONG_PTR)wnd_style_);
+}
+
+bool WinGUI::Window::set_menu(unsigned int resource_id) const noexcept {
+	HMENU hmenu = LoadMenu(instance_, MAKEINTRESOURCE(resource_id));
+
+	return SetMenu(wnd_handle_, hmenu);
 }

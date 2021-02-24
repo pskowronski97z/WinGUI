@@ -36,7 +36,6 @@ namespace WinGUI {
 	class Context final {
 
 	private:
-		static std::vector<Window*> wnd_pointers_;
 		static std::vector<ClickButton*> btn_pointers_;
 		static std::vector<CheckBox*> cb_pointers_;
 		static std::vector<Input<std::string>*> rt_pointers_;
@@ -47,7 +46,6 @@ namespace WinGUI {
 		static byte rb_counter_;
 	
 	public:
-		static bool register_gui_object(Window *wnd_pointer);
 		static bool register_gui_object(ClickButton *btn_pointer);
 		static bool register_gui_object(CheckBox *cb_pointer);
 		static bool register_gui_object(Input<std::string> *rt_pointer);

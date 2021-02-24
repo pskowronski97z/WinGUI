@@ -24,13 +24,13 @@ namespace WinGUI {
 		MAXIMIZE = WS_MAXIMIZEBOX,
 		MINIMIZE = WS_MINIMIZEBOX,
 		SIZEABLE = WS_SIZEBOX,
-		HSCROLL = WS_HSCROLL,
-		VSCROLL = WS_VSCROLL
+		H_SCROLL = WS_HSCROLL,
+		V_SCROLL = WS_VSCROLL
 	};
 	
 	// Functions >
-	/*std::wstring string_to_wstring(std::string source);
-	std::string wchar_to_string(const wchar_t *text, const int &length);*/
+	std::wstring string_to_wstring(std::string source);
+	std::string wchar_to_string(const wchar_t *text, const int &length);
 	// < Functions
 
 	// TODO: Zabezpieczenia + wyj¹tki
@@ -48,19 +48,19 @@ namespace WinGUI {
 		static LRESULT CALLBACK wnd_proc(HWND wnd_handle, UINT msg, WPARAM w_param, LPARAM l_param);
 	
 	public:
-		Window(std::string title, int width, int height);
-		Window(Window &parent, int x, int y, int width, int height);
-		Window(HWND parent_handle, HINSTANCE instance, int x, int y, int width, int height);
-		void show_window() const;
-		void hide_window() const;
-		HWND get_handle() const;
-		HINSTANCE get_instance() const;
-		int get_width() const;
-		int get_height() const;
+		Window(std::string title, const int &width, const int &height);
+		Window(Window &parent, const int &x, const int &y, const int &width, const int &height) noexcept;
+		Window(const HWND &parent_handle, const HINSTANCE &instance, const int &x, const int &y, const int &width, const int &height);
+		void show_window() const noexcept;
+		void hide_window() const noexcept;
+		HWND get_handle() const noexcept;
+		HINSTANCE get_instance() const noexcept;
+		int get_width() const noexcept;
+		int get_height() const noexcept;
 		bool set_icon(std::string file_path) const;
-		void set_cursor(Cursor cursor_type) const;
-		void set_style(Style wnd_style);
-		
+		void set_cursor(Cursor cursor_type) const noexcept;
+		void set_style(Style wnd_style) noexcept;
+		bool set_menu(unsigned int resource_id) const noexcept;
 	};
 
 }

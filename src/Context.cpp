@@ -3,7 +3,6 @@
 
 #include "Lists.h"
 
-std::vector<WinGUI::Window*> WinGUI::Context::wnd_pointers_(0);
 std::vector<WinGUI::ClickButton*> WinGUI::Context::btn_pointers_(0);
 std::vector<WinGUI::CheckBox*> WinGUI::Context::cb_pointers_(0);
 std::vector<WinGUI::Input<std::string>*> WinGUI::Context::rt_pointers_(0);
@@ -13,14 +12,6 @@ std::vector<WinGUI::TabsContainer*> WinGUI::Context::tab_container_pointers(0);
 std::vector<WinGUI::TreeView*> WinGUI::Context::tv_pointers(0);
 byte WinGUI::Context::rb_counter_ = 1;
 
-
-bool WinGUI::Context::register_gui_object(Window *wnd_pointer) {
-	if (wnd_pointer == nullptr)
-		return false;
-
-	wnd_pointers_.emplace_back(wnd_pointer);
-	return true;
-}
 
 bool WinGUI::Context::register_gui_object(ClickButton *btn_pointer) {
 	if (btn_pointer == nullptr)
