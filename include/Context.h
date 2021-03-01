@@ -9,17 +9,17 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #define FONT_HEIGHT 16
 #define TEXT_INPUT_HEIGHT 19
 #define RADIO_BUTTON 0x0000
-#define BUTTON 0x0100
-#define CHECK_BOX 0x0200
-#define RICH_TEXT_INPUT 0x0300
-#define INT_INPUT 0x0400
-#define FLOAT_INPUT 0x0500
-#define TAB_CONTROL 0x0600
-#define TREE_VIEW 0x0700
-#define TABS_CONTAINER 0x0800
-#define COMBO_BOX 0x0900
-#define LIST_BOX 0x0A00
-#define TREE_VIEW 0x0B00
+#define BUTTON 0x1000
+#define CHECK_BOX 0x2000
+#define RICH_TEXT_INPUT 0x3000
+#define INT_INPUT 0x4000
+#define FLOAT_INPUT 0x5000
+#define TAB_CONTROL 0x6000
+#define TREE_VIEW 0x7000
+#define TABS_CONTAINER 0x8000
+#define COMBO_BOX 0x9000
+#define LIST_BOX 0xA000
+#define TREE_VIEW 0xB000
 #define DEFAULT 0xFF00
 
 
@@ -43,7 +43,7 @@ namespace WinGUI {
 		static std::vector<Input<int>*> int_in_pointers_;
 		static std::vector<TabsContainer*> tab_container_pointers;
 		static std::vector<TreeView*> tv_pointers;
-		static byte rb_counter_;
+		static unsigned short rb_counter_;
 	
 	public:
 		static bool register_gui_object(ClickButton *btn_pointer);

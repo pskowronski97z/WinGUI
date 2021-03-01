@@ -1,6 +1,5 @@
 #pragma once
 #include <Control.h>
-#include <StaticControls.h>
 
 namespace WinGUI {
 
@@ -20,8 +19,8 @@ namespace WinGUI {
 	
 	public:
 		Input(const Window &parent, const std::string &name, const int &x, const int &y, const int &width,
-		      const int &height, const bool &v_scroll, const bool &h_scroll, const bool &is_password);
-		std::string get_text() const;
+		      const int &height, const bool &v_scroll, const bool &h_scroll, const bool &is_password) noexcept;
+		std::string get_text() const noexcept;
 	};
 
 	template<>
@@ -35,8 +34,8 @@ namespace WinGUI {
 		static const wchar_t *format_float_input(const wchar_t *source);
 		static LRESULT CALLBACK float_input_proc(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
 	public:
-		Input(const Window &parent, const std::string &name, const int &x, const int &y, const int &width);
-		float get_value() const;
+		Input(const Window &parent, const std::string &name, const int &x, const int &y, const int &width) noexcept;
+		float get_value() const noexcept;
 	};
 
 	template<>
@@ -50,8 +49,8 @@ namespace WinGUI {
 		static LRESULT CALLBACK int_input_proc(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
 		static const wchar_t *format_int_input(const wchar_t *source);
 	public:
-		Input(const Window &parent, const std::string &name, const int &x, const int &y, const int &width, const int &min, const int &max);
-		float get_value() const;
+		Input(const Window &parent, const std::string &name, const int &x, const int &y, const int &width, const int &min, const int &max) noexcept;
+		float get_value() const noexcept;
 		
 	};
 }

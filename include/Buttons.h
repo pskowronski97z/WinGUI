@@ -61,7 +61,7 @@ namespace WinGUI {
 		int container_width_;
 		int container_height_;
 		std::vector<Window*> tabs_;
-		void show_distinct(int index);
+		void show_distinct(int index) const;
 	
 	public:
 		TabsContainer(const Window &parent, const int &x, const int &y, const int &width, const int &height);

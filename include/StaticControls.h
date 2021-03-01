@@ -12,9 +12,9 @@ namespace WinGUI {
 	private:
 		int width_;
 	public:
-		Label(const Window &parent, const int &x, const int &y, std::string name);
-		void set_name(std::string name);
-		int get_width() const;
+		Label(const Window &parent, std::string name, const int &x, const int &y);
+		void set_text(std::string name);
+		int get_width() const noexcept;
 		
 	};
 
@@ -24,11 +24,11 @@ namespace WinGUI {
 		int height_;
 		unsigned short progress_;
 	public:
-		ProgressBar(const Window &parent, const int &x, const int &y, const int &width, const int &height, std::string name);
-		int get_width() const;
-		int get_height() const;
-		float get_progress() const;
-		bool set_progress(unsigned short progress);
+		ProgressBar(const Window &parent, std::string name, const int &x, const int &y, const int &width, const int &height) noexcept;
+		int get_width() const noexcept; 
+		int get_height() const noexcept;
+		float get_progress() const noexcept;
+		bool set_progress(unsigned short progress) noexcept;
 	};
 
 	class GroupBox : public Control {
@@ -36,8 +36,8 @@ namespace WinGUI {
 		int width_;
 		int height_;
 	public:
-		GroupBox(const Window &parent, const int &x, const int &y, const int &width, const int &height, std::string name);
-		int get_width() const;
-		int get_height() const;
+		GroupBox(const Window &parent, std::string name, const int &x, const int &y, const int &width, const int &height);
+		int get_width() const noexcept;
+		int get_height() const noexcept;
 	};
 }

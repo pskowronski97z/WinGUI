@@ -19,3 +19,4 @@ namespace WinGUI {
 }
 
 #define WinGUI_InvalidArgumentException(description) WinGUI::Exception("Invalid argument", description, __FILE__, __LINE__)
+#define WinGUI_ControlCountException(description) WinGUI::Exception("Maximum count of controls", description, __FILE__, __LINE__)

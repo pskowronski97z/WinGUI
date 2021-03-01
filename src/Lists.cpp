@@ -3,19 +3,22 @@
 #include <Window.h>
 #include <StaticControls.h>
 
-WinGUI::List::List(const Window& parent, const int& x, const int& y, std::string name) : Control(parent, x, y, name) {}
+WinGUI::List::List(const Window& parent, std::string name, const int& x, const int& y) : Control(parent, x, y, std::move(name)) {}
 
-WinGUI::ComboBox::ComboBox(const Window& parent, const std::string& name, const int& x, const int& y, const int& width,  const int &list_height)
-	: List(parent, x, y, name), width_(width), list_height_(list_height) {
+WinGUI::ComboBox::ComboBox(const Window& parent, std::string name, const int& x, const int& y, const int& width,  const int &list_height) noexcept
+	: List(parent,std::move(name), x, y), width_(width), list_height_(list_height) {
+
+	if (width_ <= 0)
+		width_ = 80;
 
 	id_ = COMBO_BOX;
 
-	if(!name.empty()) {
-		Label name_label(parent,x_,y_,name);
+	if (!name.empty()) {
+		Label name_label(parent, name_, x_, y_);
 		y_ += FONT_HEIGHT;
 	}
 	
-	handle_ = CreateWindowExW(
+	handle_ = CreateWindowEx(
 		WS_EX_CLIENTEDGE,
 		WC_COMBOBOX,
 		nullptr,
@@ -48,7 +51,7 @@ bool WinGUI::ComboBox::add_item(std::string item) const {
 	return true;
 }
 
-bool WinGUI::ComboBox::remove_item(int index) const {
+bool WinGUI::ComboBox::remove_item(int index) const noexcept {
 	int result = SendMessage(handle_,CB_DELETESTRING,(WPARAM)index,0);
 	
 	if(result==LB_ERR)
@@ -62,7 +65,7 @@ bool WinGUI::ComboBox::remove_item(int index) const {
 	return true;
 }
 
-int WinGUI::ComboBox::get_selected_index() const {
+int WinGUI::ComboBox::get_selected_index() const noexcept {
 	int result = SendMessage(handle_,CB_GETCURSEL,0,0);
 
 	if(result == LB_ERR)
@@ -71,20 +74,26 @@ int WinGUI::ComboBox::get_selected_index() const {
 	return result;
 }
 
-void WinGUI::ComboBox::clear() const {
+void WinGUI::ComboBox::clear() const noexcept {
 	SendMessage(handle_,CB_RESETCONTENT,0,0);
 	EnableWindow(handle_,false);
 }
 
 
 
-WinGUI::ListBox::ListBox(const Window& parent, const std::string& name, const int& x, const int& y, const int& width, const int& height, bool multiple_selection)
-	: List(parent, x, y, name), width_(width), height_(height) {
+WinGUI::ListBox::ListBox(const Window& parent, std::string name, const int& x, const int& y, const int& width, const int& height, bool multiple_selection) noexcept
+	: List(parent, std::move(name), x, y ), width_(width), height_(height) {
 
 	id_ = LIST_BOX;
 
+	if (width_ <= 0)
+		width_ = 100;
+
+	if (height_ <= 0)
+		height_ = 100;
+	
 	if(!name.empty()) {
-		Label name_label(parent,x_,y_,name);
+		Label name_label(parent,name_,x_,y_);
 		y_ += FONT_HEIGHT;
 	}
 	
@@ -93,7 +102,7 @@ WinGUI::ListBox::ListBox(const Window& parent, const std::string& name, const in
 	if(multiple_selection)
 		style|=LBS_MULTIPLESEL;
 	
-	handle_ = CreateWindowExW(
+	handle_ = CreateWindowEx(
 		WS_EX_CLIENTEDGE,
 		WC_LISTBOX,
 		nullptr,
@@ -122,7 +131,7 @@ bool WinGUI::ListBox::add_item(std::string item) const {
 
 }
 
-bool WinGUI::ListBox::remove_item(int index) const {
+bool WinGUI::ListBox::remove_item(int index) const noexcept{
 	
 	int result = SendMessage(handle_,LB_DELETESTRING,(WPARAM)index,0);
 	
@@ -132,7 +141,7 @@ bool WinGUI::ListBox::remove_item(int index) const {
 	return true;
 }
 
-int WinGUI::ListBox::get_selected_index() const {
+int WinGUI::ListBox::get_selected_index() const noexcept {
 	int result = SendMessage(handle_,LB_GETCURSEL,0,0);
 
 	if(result == LB_ERR)
@@ -141,7 +150,7 @@ int WinGUI::ListBox::get_selected_index() const {
 	return result;
 }
 
-void WinGUI::ListBox::clear() const {
+void WinGUI::ListBox::clear() const noexcept {
 	SendMessage(handle_,LB_RESETCONTENT,0,0);
 }
 
@@ -160,18 +169,23 @@ std::vector<int> WinGUI::ListBox::get_selected_indexes() const {
 
 
 
-WinGUI::TreeView::TreeView(const Window& parent, const std::string& name, const int& x, const int& y, const int& width, const int& height)
-	: Control(parent, x, y, name), width_(width), height_(height),selected_item_(-1) {
+WinGUI::TreeView::TreeView(const Window& parent, std::string name, const int& x, const int& y, const int& width, const int& height) noexcept
+	: Control(parent, x, y, std::move(name)), width_(width), height_(height),selected_item_(-1) {
 
 	id_ = TREE_VIEW;
-	
+
+	if (width_ <= 0)
+		width_ = 100;
+
+	if (height_ <= 0)
+		height_ = 100;
 	
 	if(!name.empty()) {
-		Label name_label(parent,x_,y_,name);
+		Label name_label(parent,name_,x_,y_);
 		y_ += FONT_HEIGHT;
 	}
 
-	handle_ = CreateWindowExW(
+	handle_ = CreateWindowEx(
 		WS_EX_CLIENTEDGE,
 		WC_TREEVIEW,
 		nullptr,
@@ -241,5 +255,5 @@ int WinGUI::TreeView::set_selected_item(HTREEITEM item_handle) {
 	return -1;
 }
 
-int WinGUI::TreeView::get_selected_index() const { return selected_item_; }
+int WinGUI::TreeView::get_selected_index() const noexcept { return selected_item_; }
 

@@ -20,18 +20,18 @@ namespace WinGUI {
 		List(List &&list) = delete;
 		List &operator=(const List &) = delete;
 		List &operator=(List &&) = delete;
-		List(const Window &parent, const int &x, const int &y, std::string name);
+		List(const Window &parent, std::string name, const int &x, const int &y);
 	};
 
 	class ComboBox : public List {
 		int width_;
 		int list_height_;
 	public:
-		ComboBox(const Window &parent, const std::string &name, const int &x, const int &y, const int &width,  const int &list_height);
+		ComboBox(const Window &parent, std::string name, const int &x, const int &y, const int &width,  const int &list_height) noexcept;
 		bool add_item(std::string item) const override;
-		bool remove_item(int index) const override;
-		int get_selected_index() const override;
-		void clear() const override;
+		bool remove_item(int index) const noexcept override ;
+		int get_selected_index() const noexcept override;
+		void clear() const noexcept override;
 		
 	};
 
@@ -39,12 +39,12 @@ namespace WinGUI {
 		int width_;
 		int height_;
 	public:
-		ListBox(const Window &parent, const std::string &name, const int &x, const int &y, const int &width,  const int &height, bool multiple_selection);
+		ListBox(const Window &parent, std::string name, const int &x, const int &y, const int &width,  const int &height, bool multiple_selection) noexcept;
 		bool add_item(std::string item) const override;
-		bool remove_item(int index) const override;
+		bool remove_item(int index) const noexcept override;
 		// For single selection
-		int get_selected_index() const override;
-		void clear() const override;
+		int get_selected_index() const noexcept override;
+		void clear() const noexcept override;
 		// For multiple selection
 		std::vector<int> get_selected_indexes() const;
 	};
@@ -57,11 +57,11 @@ namespace WinGUI {
 		int selected_item_;
 	
 	public:
-		TreeView(const Window &parent, const std::string &name, const int &x, const int &y, const int &width,  const int &height);
+		TreeView(const Window &parent,std::string name, const int &x, const int &y, const int &width,  const int &height) noexcept;
 		bool add_item(std::string item_name, int parent_index);
 		bool remove_item(int index);
 		bool clear();
 		int set_selected_item(HTREEITEM item_handle);
-		int get_selected_index() const;
+		int get_selected_index() const noexcept;
 	};
 }

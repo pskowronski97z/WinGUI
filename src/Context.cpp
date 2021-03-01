@@ -1,6 +1,6 @@
 #include <Context.h>
 #include <Buttons.h>
-
+#include <Exceptions.h>
 #include "Lists.h"
 
 std::vector<WinGUI::ClickButton*> WinGUI::Context::btn_pointers_(0);
@@ -10,7 +10,7 @@ std::vector<WinGUI::Input<float>*> WinGUI::Context::fp_in_pointers_(0);
 std::vector<WinGUI::Input<int>*> WinGUI::Context::int_in_pointers_(0);
 std::vector<WinGUI::TabsContainer*> WinGUI::Context::tab_container_pointers(0);
 std::vector<WinGUI::TreeView*> WinGUI::Context::tv_pointers(0);
-byte WinGUI::Context::rb_counter_ = 1;
+unsigned short WinGUI::Context::rb_counter_ = 1;
 
 
 bool WinGUI::Context::register_gui_object(ClickButton *btn_pointer) {
@@ -69,6 +69,7 @@ bool WinGUI::Context::register_gui_object(TreeView* tv_pointer) {
 	return true;
 }
 
+
 int WinGUI::Context::get_btn_buffer_size() { return btn_pointers_.size(); }
 
 int WinGUI::Context::get_cb_buffer_size() { return cb_pointers_.size(); }
@@ -84,15 +85,14 @@ int WinGUI::Context::get_tab_cont_buffer_size() { return tab_container_pointers.
 
 unsigned short WinGUI::Context::get_new_rb_id() {
 
-	//if(radio_button_counter_ == 255)
-	//exc
+	if(rb_counter_ > 0x0FFF)
+		throw WinGUI_ControlCountException("Cannot create a new radio button. Maximum possible count was reached (4095).");
 
 	unsigned short result = RADIO_BUTTON | rb_counter_;
 	rb_counter_++;
 
 	return result;
 }
-
 
 WinGUI::ClickButton *WinGUI::Context::get_btn_pointer(int index) {
 	if (index >= btn_pointers_.size())

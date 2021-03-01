@@ -2,6 +2,7 @@
 #include <CommCtrl.h>
 #include <Context.h>
 #include <Window.h>
+#include <Exceptions.h>
 
 WinGUI::Button::Button(const Window &parent, const int &x, const int &y, std::string name)
 	: Control(parent, x, y, std::move(name)),
@@ -24,13 +25,14 @@ WinGUI::ClickButton::ClickButton(const Window &parent, std::string name, const i
 
 	id_ = Context::get_btn_buffer_size();
 
-	if (id_ <= 255)
+	if (id_ <= 0x0FFF)
 		id_ |= BUTTON;
-	// else exception
+	else
+		throw WinGUI_ControlCountException("Cannot create a new click button. Maximum possible count was reached (4096).");
 
 	const auto w_name = string_to_wstring(name_);
 
-	handle_ = CreateWindowExW(
+	handle_ = CreateWindowEx(
 		0,
 		L"BUTTON",
 		w_name.c_str(),
@@ -67,9 +69,10 @@ WinGUI::CheckBox::CheckBox(const Window &parent, std::string name, const int &x,
 
 	id_ = Context::get_cb_buffer_size();
 
-	if (id_ <= 255)
+	if (id_ <= 0x0FFF)
 		id_ |= CHECK_BOX;
-	// else exception
+	else
+		throw WinGUI_ControlCountException("Cannot create a new check box. Maximum possible count was reached (4096).");
 
 	const auto w_name = string_to_wstring(name_);
 
@@ -79,13 +82,13 @@ WinGUI::CheckBox::CheckBox(const Window &parent, std::string name, const int &x,
 		L"BUTTON",
 		w_name.c_str(),
 		WS_CHILD | WS_VISIBLE | BS_CHECKBOX,
-		x,
-		y,
-		12 + name_.length() * 6,
+		x_,
+		y_,
+		12 + name_.length() * 7,
 		12,
 		parent_handle_,
 		(HMENU)id_,
-		GetModuleHandle(nullptr),
+		parent.get_instance(),
 		nullptr);
 
 	SendMessage(handle_, WM_SETFONT, (WPARAM)((HFONT)GetStockObject(DEFAULT_GUI_FONT)), MAKELPARAM(TRUE, 0));
@@ -140,7 +143,7 @@ bool WinGUI::RadioButton::is_checked() const {
 }
 
 
-void WinGUI::TabsContainer::show_distinct(int index) {
+void WinGUI::TabsContainer::show_distinct(int index) const{
 
 	for(auto &tab : tabs_)
 		tab->hide_window();

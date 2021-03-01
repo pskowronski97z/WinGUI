@@ -41,7 +41,8 @@ LRESULT CALLBACK WinGUI::Window::wnd_proc(HWND wnd_handle, UINT msg, WPARAM w_pa
 	Input<int> *int_in_pointer = nullptr;
 	TabsContainer *tabs_cont_pointer = nullptr;
 	TreeView *tv_pointer = nullptr;
-	unsigned short ctrl_class_id;
+	unsigned short ctrl_class_id = 0;
+	unsigned short ctrl_index = 0;
 	int index = 0;
 	LPNMHDR id = 0;
 	LPNMTREEVIEW nmtv = 0;
@@ -50,11 +51,13 @@ LRESULT CALLBACK WinGUI::Window::wnd_proc(HWND wnd_handle, UINT msg, WPARAM w_pa
 	switch (msg) {
 	case WM_COMMAND:
 
-		ctrl_class_id = (HIBYTE(w_param) << 8);
+		ctrl_class_id = (LOWORD(w_param) & 0xF000);
+		ctrl_index = LOWORD(w_param) & 0x0FFF;
+		
 		if (ctrl_class_id == BUTTON)
-			btn_pointer = Context::get_btn_pointer(LOBYTE(w_param));
+			btn_pointer = Context::get_btn_pointer(ctrl_index);
 		else if (ctrl_class_id == CHECK_BOX)
-			btn_pointer = Context::get_cb_pointer(LOBYTE(w_param));
+			btn_pointer = Context::get_cb_pointer(ctrl_index);
 
 		if (btn_pointer != nullptr) {
 			switch (HIWORD(w_param)) {

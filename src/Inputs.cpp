@@ -4,6 +4,7 @@
 #include <Window.h>
 #include <CommCtrl.h>
 #include <cwchar>
+#include <StaticControls.h>
 
 void WinGUI::Input<std::string>::on_text_entered(LPARAM l_param) {
 	int buffer_size = GetWindowTextLength((HWND)l_param);
@@ -16,21 +17,17 @@ void WinGUI::Input<std::string>::on_text_entered(LPARAM l_param) {
 WinGUI::Input<std::string>::Input(const Window &parent,
                                   const std::string &name, const int &x, const int &y, const int &width,
                                   const int &height, const bool &v_scroll, const bool &h_scroll,
-                                  const bool &is_password) :
+                                  const bool &is_password) noexcept :
 	Control(parent, x, y, name), width_(width), height_(height) {
 
-	/*if ((x < 0) || (y < 0) || (width <= 0) || (height <= 0))
-		exc;*/
+	if (width_ <= 0)
+		width_ = 100;
 
-	/*if (!name.empty()) {
-		add_label(name, x, y);
-		height -= FONT_HEIGHT;
-		y += FONT_HEIGHT;
-	}*/
+	if (height_ <= 0)
+		height_ = 100;
 
-
-	if(!name.empty()) {
-		Label name_label(parent,x_,y_,name);
+	if (!name.empty()) {
+		Label name_label(parent, name_, x_, y_);
 		y_ += FONT_HEIGHT;
 	}
 	
@@ -46,7 +43,7 @@ WinGUI::Input<std::string>::Input(const Window &parent,
 
 	id_ = RICH_TEXT_INPUT | Context::get_rt_buffer_size();
 
-	handle_ = CreateWindowExW(
+	handle_ = CreateWindowEx(
 		WS_EX_CLIENTEDGE,
 		L"EDIT",
 		nullptr,
@@ -65,7 +62,7 @@ WinGUI::Input<std::string>::Input(const Window &parent,
 	Context::register_gui_object(this);
 }
 
-std::string WinGUI::Input<std::string>::get_text() const { return text_; }
+std::string WinGUI::Input<std::string>::get_text() const noexcept { return text_; }
 
 
 
@@ -77,6 +74,12 @@ void WinGUI::Input<float>::on_value_entered(LPARAM l_param) {
 	buffer.resize(buffer_size);
 	GetWindowText((HWND)l_param, (LPWSTR)buffer.c_str(), buffer_size + 1);
 	buffer_2 = wchar_to_string(buffer.c_str(), buffer_size);
+
+	if(buffer_2._Equal("ERROR")) {
+		value_ = 0.0f;
+		return;
+	}
+	
 	value_ = std::stof(buffer_2);
 }
 
@@ -87,6 +90,20 @@ const wchar_t *WinGUI::Input<float>::format_float_input(const wchar_t *source) {
 	int no_minus_str_len = 0;
 	int itr_1 = 0;
 	int itr_2 = 0;
+
+	if(source == nullptr) {
+		result = new wchar_t[6];
+		result[0] = 'E';
+		result[1] = 'R';
+		result[2] = 'R';
+		result[3] = 'O';
+		result[4] = 'R';
+		result[5] = '\0';
+		
+		return result;
+	}
+		
+	
 	int source_len = wcslen(source) + 1;
 	bool was_separator = false;
 	bool is_negative = false;
@@ -161,9 +178,9 @@ const wchar_t *WinGUI::Input<float>::format_float_input(const wchar_t *source) {
 		return result;
 	}
 
-	// filtered_str contains string which is filtered out of redundant decimal separators
-	// Amount of array elements is still the same like origin length, but \0 is placed earlier which trims the string
-	// Real length (pointed by \0) is stored in filtered_str_len
+	// The filtered_str contains string which is filtered out of redundant decimal separators
+	// Amount of array elements is still the same as origin length, but \0 is placed earlier which trims the string
+	// Real length (which end is pointed by \0) is stored in filtered_str_len
 
 	// 2. Padding front with 0 when the first char is "."
 
@@ -244,17 +261,20 @@ LRESULT CALLBACK WinGUI::Input<float>::float_input_proc(HWND window_handle, UINT
 WNDPROC WinGUI::Input<float>::std_edit_proc_ = nullptr;
 WNDPROC WinGUI::Input<int>::std_edit_proc_ = nullptr;
 
-WinGUI::Input<float>::Input(const Window &parent, const std::string &name, const int &x, const int &y, const int &width)
+WinGUI::Input<float>::Input(const Window &parent, const std::string &name, const int &x, const int &y, const int &width) noexcept
 	: Control(parent, x, y, name), width_(width), value_(0.0f) {
 
+	if(width_ <= 0)
+		width_ = 50;
+
 	if(!name.empty()) {
-		Label name_label(parent,x_,y_,name);
+		Label name_label(parent, name_,x_,y_);
 		y_ += FONT_HEIGHT;
 	}
 	
 	id_ = FLOAT_INPUT | Context::get_fp_in_buffer_size();
 
-	handle_ = CreateWindowExW(
+	handle_ = CreateWindowEx(
 		WS_EX_CLIENTEDGE,
 		L"EDIT",
 		nullptr,
@@ -277,22 +297,25 @@ WinGUI::Input<float>::Input(const Window &parent, const std::string &name, const
 	Context::register_gui_object(this);
 }
 
-float WinGUI::Input<float>::get_value() const { return value_; }
+float WinGUI::Input<float>::get_value() const noexcept { return value_; }
 
 
 
 
-WinGUI::Input<int>::Input(const Window &parent, const std::string &name, const int &x, const int &y, const int &width, const int &min, const int &max)
+WinGUI::Input<int>::Input(const Window &parent, const std::string &name, const int &x, const int &y, const int &width, const int &min, const int &max) noexcept
 	: Control(parent, x, y, name), width_(width), value_(0) {
 
+	if (width_ <= 0)
+		width_ = 50;
+	
 	if(!name.empty()) {
-		Label name_label(parent,x_,y_,name);
+		Label name_label(parent,name_,x_,y_);
 		y_ += FONT_HEIGHT;
 	}
 	
 	id_ = INT_INPUT | Context::get_int_in_buffer_size();
 	
-	handle_ = CreateWindowExW(
+	handle_ = CreateWindowEx(
 		WS_EX_CLIENTEDGE,
 		L"EDIT",
 		nullptr,
@@ -330,16 +353,22 @@ WinGUI::Input<int>::Input(const Window &parent, const std::string &name, const i
 	Context::register_gui_object(this);
 }
 
-float WinGUI::Input<int>::get_value() const { return value_; }
+float WinGUI::Input<int>::get_value() const noexcept { return value_; }
 
 void WinGUI::Input<int>::on_value_entered(LPARAM l_param) {
-
+	
 	int buffer_size = GetWindowTextLength((HWND)l_param);
 	std::wstring buffer;
 	std::string buffer_2;
 	buffer.resize(buffer_size);
 	GetWindowText((HWND)l_param, (LPWSTR)buffer.c_str(), buffer_size + 1);
 	buffer_2 = wchar_to_string(buffer.c_str(), buffer_size);
+
+	if(buffer_2._Equal("ERROR")) {
+		value_ = 0.0f;
+		return;
+	}
+	
 	value_ = std::stoi(buffer_2);
 
 }
@@ -376,12 +405,25 @@ LRESULT WinGUI::Input<int>::int_input_proc(HWND window_handle, UINT message, WPA
 }
 
 const wchar_t *WinGUI::Input<int>::format_int_input(const wchar_t *source) {
+	wchar_t *result;
 
+	if(source == nullptr) {
+		result = new wchar_t[6];
+		result[0] = 'E';
+		result[1] = 'R';
+		result[2] = 'R';
+		result[3] = 'O';
+		result[4] = 'R';
+		result[5] = '\0';
+		
+		return result;
+	}
+	
 	std::wstring w_str_source(source);
 	std::wstring w_str_result;
 	bool was_minus = false;
 	bool first_non_zero = false;
-	wchar_t *result;
+	
 
 	for (auto &wch : w_str_source) {
 		if (wch == L'-') {
