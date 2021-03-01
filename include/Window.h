@@ -33,6 +33,9 @@ namespace WinGUI {
 	std::string wchar_to_string(const wchar_t *text, const int &length);
 	// < Functions
 
+
+
+	
 	// TODO: Zabezpieczenia + wyj¹tki
 	class Window {
 	private:
@@ -63,5 +66,24 @@ namespace WinGUI {
 		bool set_menu(unsigned int resource_id) const noexcept;
 	};
 
+	
+	
+	class IO {
+		friend class Window;
+	private:
+		static HWND window_with_focus_;
+		static POINT mouse_pos_;
+		static bool left_button_down_;
+		static bool middle_button_down_;
+		static bool right_button_down_;
+	
+	public:
+		static int get_mouse_x();
+		static int get_mouse_y();
+		static bool mouse_l_button_down();
+		static bool mouse_r_button_down();
+		static bool mouse_m_button_down();
+	};
+	
 }
 

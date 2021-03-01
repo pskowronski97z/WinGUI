@@ -33,6 +33,13 @@ std::string WinGUI::wchar_to_string(const wchar_t *text, const int &length) {
 	return result;
 }
 
+
+POINT WinGUI::IO::mouse_pos_;
+HWND WinGUI::IO::window_with_focus_;
+bool WinGUI::IO::left_button_down_;
+bool WinGUI::IO::right_button_down_;
+bool WinGUI::IO::middle_button_down_;
+
 LRESULT CALLBACK WinGUI::Window::wnd_proc(HWND wnd_handle, UINT msg, WPARAM w_param, LPARAM l_param) {
 
 	Button *btn_pointer = nullptr;
@@ -49,9 +56,53 @@ LRESULT CALLBACK WinGUI::Window::wnd_proc(HWND wnd_handle, UINT msg, WPARAM w_pa
 
 	
 	switch (msg) {
+	case WM_MOUSEMOVE:
+
+		SetFocus(wnd_handle);
+		IO::window_with_focus_ = wnd_handle;
+		IO::mouse_pos_.x = LOWORD(l_param);
+		IO::mouse_pos_.y = HIWORD(l_param);
+		
+		break;
+
+	case WM_LBUTTONDOWN:
+		IO::left_button_down_ = true;
+		break;
+
+	case WM_LBUTTONUP:
+		IO::left_button_down_ = false;
+		break;
+
+	case WM_RBUTTONDOWN:
+		IO::right_button_down_ = true;
+		break;
+
+	case WM_RBUTTONUP:
+		IO::right_button_down_ = false;
+		break;
+
+	case WM_MBUTTONDOWN:
+
+		IO::middle_button_down_=true;
+		break;
+
+	case WM_MBUTTONUP:
+		IO::middle_button_down_=false;
+		break;
+		
+	case WM_KEYDOWN:
+		std::cout<<w_param<<std::endl;
+		break;
+		
+	case WM_KEYUP:
+
+
+
+		break;
+		
 	case WM_COMMAND:
 
-		ctrl_class_id = (LOWORD(w_param) & 0xF000);
+		ctrl_class_id = LOWORD(w_param) & 0xF000;
 		ctrl_index = LOWORD(w_param) & 0x0FFF;
 		
 		if (ctrl_class_id == BUTTON)
@@ -349,3 +400,13 @@ bool WinGUI::Window::set_menu(unsigned int resource_id) const noexcept {
 
 	return SetMenu(wnd_handle_, hmenu);
 }
+
+int WinGUI::IO::get_mouse_x() { return mouse_pos_.x; }
+
+int WinGUI::IO::get_mouse_y() { return mouse_pos_.y; }
+
+bool WinGUI::IO::mouse_l_button_down(){return left_button_down_;}
+
+bool WinGUI::IO::mouse_r_button_down(){return right_button_down_;}
+
+bool WinGUI::IO::mouse_m_button_down(){return middle_button_down_;}

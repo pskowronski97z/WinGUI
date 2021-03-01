@@ -3,6 +3,8 @@
 #include <Window.h>
 #include <StaticControls.h>
 
+
+
 WinGUI::List::List(const Window& parent, std::string name, const int& x, const int& y) : Control(parent, x, y, std::move(name)) {}
 
 WinGUI::ComboBox::ComboBox(const Window& parent, std::string name, const int& x, const int& y, const int& width,  const int &list_height) noexcept
@@ -168,7 +170,6 @@ std::vector<int> WinGUI::ListBox::get_selected_indexes() const {
 
 
 
-
 WinGUI::TreeView::TreeView(const Window& parent, std::string name, const int& x, const int& y, const int& width, const int& height) noexcept
 	: Control(parent, x, y, std::move(name)), width_(width), height_(height),selected_item_(-1) {
 
@@ -256,4 +257,3 @@ int WinGUI::TreeView::set_selected_item(HTREEITEM item_handle) {
 }
 
 int WinGUI::TreeView::get_selected_index() const noexcept { return selected_item_; }
-

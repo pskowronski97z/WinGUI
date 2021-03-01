@@ -9,7 +9,6 @@ namespace WinGUI {
 	std::wstring string_to_wstring(std::string source);
 	
 	class List : public Control {
-
 	public:
 		virtual bool add_item(std::string item) const = 0;
 		virtual bool remove_item(int index) const = 0;
@@ -31,8 +30,7 @@ namespace WinGUI {
 		bool add_item(std::string item) const override;
 		bool remove_item(int index) const noexcept override ;
 		int get_selected_index() const noexcept override;
-		void clear() const noexcept override;
-		
+		void clear() const noexcept override;	
 	};
 
 	class ListBox : public List {
@@ -55,7 +53,6 @@ namespace WinGUI {
 		int height_;
 		std::vector<TVITEM> items_;
 		int selected_item_;
-	
 	public:
 		TreeView(const Window &parent,std::string name, const int &x, const int &y, const int &width,  const int &height) noexcept;
 		bool add_item(std::string item_name, int parent_index);
