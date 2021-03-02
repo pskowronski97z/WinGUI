@@ -11,6 +11,26 @@
 #define DEFAULT_WND_CLASS L"default_wnd_class"
 #define CONTENT_CONTAINER L"content_container"
 
+
+
+POINT WinGUI::IO::Mouse::mouse_position_{0, 0};
+POINT WinGUI::IO::Mouse::mouse_delta_{0, 0};
+HWND WinGUI::IO::Mouse::window_with_focus_ = nullptr;
+bool WinGUI::IO::Mouse::left_button_down_ = false;
+bool WinGUI::IO::Mouse::right_button_down_ = false;
+bool WinGUI::IO::Mouse::middle_button_down_ = false;
+int WinGUI::IO::Mouse::wheel_delta_ = 0;
+
+
+
+HWND WinGUI::IO::Keyboard::window_with_focus_ = nullptr;
+byte WinGUI::IO::Keyboard::key_down_ = 0;
+byte WinGUI::IO::Keyboard::key_up_ = 0;
+byte WinGUI::IO::Keyboard::sys_key_down_ = 0;
+byte WinGUI::IO::Keyboard::sys_key_up_ = 0;
+
+
+
 std::wstring WinGUI::string_to_wstring(std::string source) {
 
 	std::wstring result;
@@ -34,11 +54,6 @@ std::string WinGUI::wchar_to_string(const wchar_t *text, const int &length) {
 }
 
 
-POINT WinGUI::IO::mouse_pos_;
-HWND WinGUI::IO::window_with_focus_;
-bool WinGUI::IO::left_button_down_;
-bool WinGUI::IO::right_button_down_;
-bool WinGUI::IO::middle_button_down_;
 
 LRESULT CALLBACK WinGUI::Window::wnd_proc(HWND wnd_handle, UINT msg, WPARAM w_param, LPARAM l_param) {
 
@@ -54,50 +69,77 @@ LRESULT CALLBACK WinGUI::Window::wnd_proc(HWND wnd_handle, UINT msg, WPARAM w_pa
 	LPNMHDR id = 0;
 	LPNMTREEVIEW nmtv = 0;
 
+	IO::Mouse::wheel_delta_ = 0;
+	IO::Keyboard::key_down_ = 0;
+	IO::Keyboard::key_up_ = 0;
+	IO::Keyboard::sys_key_down_ = 0;
+	IO::Keyboard::sys_key_up_ = 0;
 	
 	switch (msg) {
+	case WM_MOUSEWHEEL:
+
+		if (HIWORD(w_param) == 120)
+			IO::Mouse::wheel_delta_ = 1;
+		else
+			IO::Mouse::wheel_delta_ = -1;
+
+		break;
+		
 	case WM_MOUSEMOVE:
 
 		SetFocus(wnd_handle);
-		IO::window_with_focus_ = wnd_handle;
-		IO::mouse_pos_.x = LOWORD(l_param);
-		IO::mouse_pos_.y = HIWORD(l_param);
+		IO::Mouse::window_with_focus_ = wnd_handle;
+		IO::Keyboard::window_with_focus_ = wnd_handle;
+		IO::Mouse::mouse_delta_.x = IO::Mouse::mouse_position_.x - LOWORD(l_param);
+		IO::Mouse::mouse_delta_.y = IO::Mouse::mouse_position_.y - HIWORD(l_param);
+		IO::Mouse::mouse_position_.x = LOWORD(l_param);
+		IO::Mouse::mouse_position_.y = HIWORD(l_param);
 		
 		break;
-
+		
 	case WM_LBUTTONDOWN:
-		IO::left_button_down_ = true;
+		IO::Mouse::left_button_down_ = true;
 		break;
 
 	case WM_LBUTTONUP:
-		IO::left_button_down_ = false;
+		IO::Mouse::left_button_down_ = false;
 		break;
 
 	case WM_RBUTTONDOWN:
-		IO::right_button_down_ = true;
+		IO::Mouse::right_button_down_ = true;
 		break;
 
 	case WM_RBUTTONUP:
-		IO::right_button_down_ = false;
+		IO::Mouse::right_button_down_ = false;
 		break;
 
 	case WM_MBUTTONDOWN:
 
-		IO::middle_button_down_=true;
+		IO::Mouse::middle_button_down_=true;
 		break;
 
 	case WM_MBUTTONUP:
-		IO::middle_button_down_=false;
+		IO::Mouse::middle_button_down_=false;
 		break;
 		
 	case WM_KEYDOWN:
-		std::cout<<w_param<<std::endl;
+		IO::Keyboard::key_down_= w_param;
+		IO::Keyboard::key_up_= 0;
 		break;
 		
 	case WM_KEYUP:
+		IO::Keyboard::key_up_= w_param;
+		IO::Keyboard::key_down_= 0;
+		break;
 
+	case WM_SYSKEYDOWN:
+		IO::Keyboard::sys_key_down_= w_param;
+		IO::Keyboard::sys_key_up_= 0;
+		break;
 
-
+	case WM_SYSKEYUP:
+		IO::Keyboard::sys_key_up_= w_param;
+		IO::Keyboard::sys_key_down_= 0;
 		break;
 		
 	case WM_COMMAND:
@@ -401,12 +443,54 @@ bool WinGUI::Window::set_menu(unsigned int resource_id) const noexcept {
 	return SetMenu(wnd_handle_, hmenu);
 }
 
-int WinGUI::IO::get_mouse_x() { return mouse_pos_.x; }
 
-int WinGUI::IO::get_mouse_y() { return mouse_pos_.y; }
 
-bool WinGUI::IO::mouse_l_button_down(){return left_button_down_;}
+int WinGUI::IO::Mouse::get_wheel_delta() { return wheel_delta_; }
 
-bool WinGUI::IO::mouse_r_button_down(){return right_button_down_;}
+int WinGUI::IO::Mouse::get_position_x() { return mouse_position_.x; }
 
-bool WinGUI::IO::mouse_m_button_down(){return middle_button_down_;}
+int WinGUI::IO::Mouse::get_position_y() { return mouse_position_.y; }
+
+int WinGUI::IO::Mouse::get_position_dx() { return mouse_delta_.x; }
+
+int WinGUI::IO::Mouse::get_position_dy() { return mouse_delta_.y; }
+
+bool WinGUI::IO::Mouse::left_button_down() { return left_button_down_; }
+
+bool WinGUI::IO::Mouse::right_button_down() { return right_button_down_; }
+
+bool WinGUI::IO::Mouse::middle_button_down() { return middle_button_down_; }
+
+
+
+bool WinGUI::IO::Keyboard::key_down(Key key) {
+
+	if((byte)key == key_down_)
+		return true;
+
+	return false;
+}
+
+bool WinGUI::IO::Keyboard::key_up(Key key) {
+
+	if((byte)key == key_up_)
+		return true;
+
+	return false;
+}
+
+bool WinGUI::IO::Keyboard::sys_key_down(Key key) {
+
+	if((byte)key == sys_key_down_)
+		return true;
+
+	return false;
+}
+
+bool WinGUI::IO::Keyboard::sys_key_up(Key key) {
+
+	if((byte)key == sys_key_up_)
+		return true;
+
+	return false;
+}
