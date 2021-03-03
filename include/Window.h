@@ -246,17 +246,21 @@ namespace WinGUI {
 		class Keyboard {
 			friend class Window;
 		private:
-			static HWND window_with_focus_;
-			static byte key_down_;
-			static byte key_up_;
-			static byte sys_key_down_;
-			static byte sys_key_up_;
+			static HWND window_with_focus_;		
+			static char typed_char_;
+			static bool keys_down_[255];
+			static bool keys_up_[255];
+			static bool sys_keys_down_[255];
+			static bool sys_keys_up_[255];
 
 		public:
 			static bool key_down(Key key);
 			static bool key_up(Key key);
 			static bool sys_key_down(Key key);
 			static bool sys_key_up(Key key);
+			static char get_typed_char();
+			static void key_up_flush(Key key);
+			static void sys_key_up_flush(Key key);
 		};
 
 	}

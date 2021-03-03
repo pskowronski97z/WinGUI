@@ -24,12 +24,11 @@ int WinGUI::IO::Mouse::wheel_delta_ = 0;
 
 
 HWND WinGUI::IO::Keyboard::window_with_focus_ = nullptr;
-byte WinGUI::IO::Keyboard::key_down_ = 0;
-byte WinGUI::IO::Keyboard::key_up_ = 0;
-byte WinGUI::IO::Keyboard::sys_key_down_ = 0;
-byte WinGUI::IO::Keyboard::sys_key_up_ = 0;
-
-
+char WinGUI::IO::Keyboard::typed_char_ = 0;
+bool WinGUI::IO::Keyboard::keys_down_[255]{false};
+bool WinGUI::IO::Keyboard::keys_up_[255]{false};
+bool WinGUI::IO::Keyboard::sys_keys_down_[255]{false};
+bool WinGUI::IO::Keyboard::sys_keys_up_[255]{false};
 
 std::wstring WinGUI::string_to_wstring(std::string source) {
 
@@ -70,12 +69,13 @@ LRESULT CALLBACK WinGUI::Window::wnd_proc(HWND wnd_handle, UINT msg, WPARAM w_pa
 	LPNMTREEVIEW nmtv = 0;
 
 	IO::Mouse::wheel_delta_ = 0;
-	IO::Keyboard::key_down_ = 0;
-	IO::Keyboard::key_up_ = 0;
-	IO::Keyboard::sys_key_down_ = 0;
-	IO::Keyboard::sys_key_up_ = 0;
+	IO::Keyboard::typed_char_ = 0;
 	
 	switch (msg) {
+
+	case WM_CHAR:
+		IO::Keyboard::typed_char_ = (char)w_param;
+		break;
 	case WM_MOUSEWHEEL:
 
 		if (HIWORD(w_param) == 120)
@@ -123,23 +123,23 @@ LRESULT CALLBACK WinGUI::Window::wnd_proc(HWND wnd_handle, UINT msg, WPARAM w_pa
 		break;
 		
 	case WM_KEYDOWN:
-		IO::Keyboard::key_down_= w_param;
-		IO::Keyboard::key_up_= 0;
+		IO::Keyboard::keys_down_[(byte)w_param] = true;
+		IO::Keyboard::keys_up_[(byte)w_param] = false;
 		break;
 		
 	case WM_KEYUP:
-		IO::Keyboard::key_up_= w_param;
-		IO::Keyboard::key_down_= 0;
+		IO::Keyboard::keys_down_[(byte)w_param] = false;
+		IO::Keyboard::keys_up_[(byte)w_param] = true;
 		break;
 
 	case WM_SYSKEYDOWN:
-		IO::Keyboard::sys_key_down_= w_param;
-		IO::Keyboard::sys_key_up_= 0;
+		IO::Keyboard::sys_keys_down_[(byte)w_param] = true;
+		IO::Keyboard::sys_keys_up_[(byte)w_param] = false;
 		break;
 
 	case WM_SYSKEYUP:
-		IO::Keyboard::sys_key_up_= w_param;
-		IO::Keyboard::sys_key_down_= 0;
+		IO::Keyboard::sys_keys_down_[(byte)w_param] = false;
+		IO::Keyboard::sys_keys_up_[(byte)w_param] = true;
 		break;
 		
 	case WM_COMMAND:
@@ -463,34 +463,16 @@ bool WinGUI::IO::Mouse::middle_button_down() { return middle_button_down_; }
 
 
 
-bool WinGUI::IO::Keyboard::key_down(Key key) {
+bool WinGUI::IO::Keyboard::key_down(Key key) { return keys_down_[(byte)key]; }
 
-	if((byte)key == key_down_)
-		return true;
+bool WinGUI::IO::Keyboard::key_up(Key key) { return keys_up_[(byte)key]; }
 
-	return false;
-}
+bool WinGUI::IO::Keyboard::sys_key_down(Key key) { return sys_keys_down_[(byte)key]; }
 
-bool WinGUI::IO::Keyboard::key_up(Key key) {
+bool WinGUI::IO::Keyboard::sys_key_up(Key key) { return sys_keys_up_[(byte)key]; }
 
-	if((byte)key == key_up_)
-		return true;
+char WinGUI::IO::Keyboard::get_typed_char() { return typed_char_; }
 
-	return false;
-}
+void WinGUI::IO::Keyboard::key_up_flush(Key key) { keys_up_[(byte)key] = false; }
 
-bool WinGUI::IO::Keyboard::sys_key_down(Key key) {
-
-	if((byte)key == sys_key_down_)
-		return true;
-
-	return false;
-}
-
-bool WinGUI::IO::Keyboard::sys_key_up(Key key) {
-
-	if((byte)key == sys_key_up_)
-		return true;
-
-	return false;
-}
+void WinGUI::IO::Keyboard::sys_key_up_flush(Key key) { sys_keys_up_[(byte)key] = false; }
